@@ -102,12 +102,15 @@ const DepositSection = ({ pool }) => {
       const tokensNeedingBalance = {};
       eligibleTokens.forEach(token => {
         tokensNeedingBalance[token.symbol] = {
+          symbol: token.symbol,
+          decimals: token.decimals,
           tokenAddress: token.wrappedSymbol ? null : token.address,
           tokenBalance: 0,
+          ...tokens[token.symbol],
           allowance: {
+            ...(tokens[token.symbol] ? tokens[token.symbol].allowance : {}),
             [zap.zapAddress]: token.wrappedSymbol ? Infinity : 0,
           },
-          ...tokens[token.symbol],
         };
       });
       fetchBalances({ address, web3, tokens: tokensNeedingBalance });
