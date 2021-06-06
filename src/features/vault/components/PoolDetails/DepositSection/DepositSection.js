@@ -99,9 +99,9 @@ const DepositSection = ({ pool }) => {
 
   useEffect(() => {
     if (address && web3 && zap) {
-      const tokens = {};
+      const tokensNeedingBalance = {};
       eligibleTokens.forEach(token => {
-        tokens[token.symbol] = {
+        tokensNeedingBalance[token.symbol] = {
           tokenAddress: token.wrappedSymbol ? null : token.address,
           tokenBalance: 0,
           allowance: {
@@ -110,7 +110,7 @@ const DepositSection = ({ pool }) => {
           ...tokens[token.symbol],
         };
       });
-      fetchBalances({ address, web3, tokens });
+      fetchBalances({ address, web3, tokens: tokensNeedingBalance });
     }
   }, [address, web3, fetchBalances]);
 
