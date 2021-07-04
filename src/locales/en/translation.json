@@ -12,7 +12,6 @@
   "Network-GoToApp": "Go to {{network}} app",
   "Network-NoWalletAddress": "Allow access to one account in your wallet.",
   "Vault-Wallet": "Wallet",
-  "Vault-ConnectWallet": "Connect Wallet",
   "Vault-Balance": "Balance",
   "Vault-APR": "APR",
   "Vault-APY": "APY",
