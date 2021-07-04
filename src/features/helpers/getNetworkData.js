@@ -38,7 +38,7 @@ const networkAppUrls = {
   128: 'https://heco.beefy.finance/',
   43114: 'https://avax.beefy.finance/',
   137: 'https://polygon.beefy.finance/',
-  250: 'https://ftm.beefy.finance/',
+  250: 'https://fantom.beefy.finance/',
 };
 
 const networkFriendlyName = {
