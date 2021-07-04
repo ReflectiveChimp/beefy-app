@@ -1,38 +1,38 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { makeStyles, StylesProvider, ThemeProvider } from '@material-ui/core/styles';
-
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { makeStyles, ThemeProvider, StylesProvider } from '@material-ui/core/styles';
 import Header from 'components/Header/Header';
 import HeaderLinks from 'components/HeaderLinks/HeaderLinks';
 import NetworksProvider from 'components/NetworksProvider/NetworksProvider';
 import NetworksModal from 'components/NetworksModal/NetworksModal';
-
 import { useTranslation } from 'react-i18next';
-
 import { SnackbarProvider } from 'notistack';
 import { Notifier } from 'features/common';
-
 import Footer from 'components/Footer/Footer';
 import Pastures from 'components/Pastures/Pastures';
-import { NetworkConnectNotice } from '../../components/NetworkConnectNotice/NetworkConnectNotice';
-
+import { NetworkConnectNotice } from 'components/NetworkConnectNotice/NetworkConnectNotice';
 import appStyle from './jss/appStyle.js';
 import { createWeb3Modal } from '../web3';
 import { useConnectWallet, useDisconnectWallet } from './redux/hooks';
 import useNightMode from './hooks/useNightMode';
-
 import createTheme from './jss/appTheme';
 
-const useStyles = makeStyles(appStyle);
+const themes = { light: null, dark: null };
+const getTheme = mode => {
+  return (themes[mode] = themes[mode] || createTheme(mode === 'dark'));
+};
 
 export default function App({ children }) {
-  const classes = useStyles();
   const { t } = useTranslation();
   const { connectWallet, web3, address, networkId, connected } = useConnectWallet();
   const { disconnectWallet } = useDisconnectWallet();
   const [web3Modal, setModal] = useState(null);
 
   const { isNightMode, setNightMode } = useNightMode();
-  const theme = createTheme(isNightMode);
+  const theme = useMemo(() => getTheme(isNightMode ? 'dark' : 'light'), [isNightMode]);
+  const useStyles = useMemo(() => {
+    return makeStyles(appStyle, { defaultTheme: theme });
+  }, [theme]);
+  const classes = useStyles();
 
   useEffect(() => {
     setModal(createWeb3Modal(t));
@@ -58,10 +58,7 @@ export default function App({ children }) {
         <SnackbarProvider>
           <NetworksProvider>
             <NetworksModal />
-            <div
-              className={classes.page}
-              style={{ backgroundColor: theme.palette.background.default }}
-            >
+            <div className={classes.page}>
               <Header
                 links={
                   <HeaderLinks
@@ -89,7 +86,6 @@ export default function App({ children }) {
                   <Notifier />
                 </div>
               </div>
-
               <Footer />
               <Pastures />
             </div>

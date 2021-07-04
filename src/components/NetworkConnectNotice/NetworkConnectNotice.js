@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import Button from '@material-ui/core/Button';
-import { networkSettings, networkSetup } from '../../common/networkSetup';
-import { getNetworkAppUrl, getNetworkFriendlyName } from '../../features/helpers/getNetworkData';
+import { networkSettings, networkSetup } from 'common/networkSetup';
+import { getNetworkAppUrl, getNetworkFriendlyName } from 'features/helpers/getNetworkData';
 import { makeStyles } from '@material-ui/core/styles';
 import styles from './styles';
 import { useTranslation } from 'react-i18next';
