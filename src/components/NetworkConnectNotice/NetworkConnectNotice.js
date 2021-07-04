@@ -89,6 +89,7 @@ export function NetworkConnectNotice({
             {t('Network-DisconnectWallet')}
           </Button>
         </div>
+        <div className={classes.note}>{t('Network-SwitchNote')}</div>
         {networkSetupError ? <div className={classes.error}>{networkSetupError}</div> : ''}
       </>
     );

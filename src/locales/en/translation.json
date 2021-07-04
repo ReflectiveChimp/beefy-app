@@ -10,6 +10,7 @@
   "Network-DisconnectWallet": "Disconnect wallet",
   "Network-SwitchToNetwork": "Switch to {{network}} network",
   "Network-GoToApp": "Go to {{network}} app",
+  "Network-SwitchNote": "You may need to manually switch network via your wallet.",
   "Network-NoWalletAddress": "Allow access to one account in your wallet.",
   "Vault-Wallet": "Wallet",
   "Vault-Balance": "Balance",

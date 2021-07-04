@@ -22,6 +22,10 @@ const styles = theme => ({
     textTransform: 'none',
     margin: '10px 10px 0 0',
   },
+  note: {
+    marginBottom: 15,
+    fontStyle: 'italic',
+  },
   error: {
     color: 'red',
   },
