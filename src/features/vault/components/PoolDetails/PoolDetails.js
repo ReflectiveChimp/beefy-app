@@ -112,7 +112,7 @@ const PoolDetails = ({ vaultId }) => {
         <HomeLink />
         {vaultId === 'cake-cakev2' ? <CakeV2Banner /> : ''}
         <div className={classes.container}>
-          <h1>Loading Vault...</h1>
+          <div className={classes.loading}>{t('Vault-Loading')}</div>
         </div>
       </>
     );
@@ -121,7 +121,7 @@ const PoolDetails = ({ vaultId }) => {
       <>
         <HomeLink />
         <div className={classes.container}>
-          <h1>Vault {vaultId} not found</h1>
+          <div className={classes.error}>Vault {vaultId} not found</div>
         </div>
       </>
     );
@@ -155,6 +155,7 @@ const PoolDetails = ({ vaultId }) => {
               logo={pool.logo}
               poolId={pool.id}
               description={t('Vault-Description', { vault: pool.tokenDescription })}
+              launchpool={launchpool}
               addLiquidityUrl={pool.addLiquidityUrl}
               removeLiquidityUrl={pool.removeLiquidityUrl}
               buyTokenUrl={pool.buyTokenUrl}
