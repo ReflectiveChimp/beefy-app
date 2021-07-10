@@ -25,6 +25,8 @@ import {
   polygonZaps,
 } from '../configure';
 
+export const networkId = Number(process.env.REACT_APP_NETWORK_ID);
+
 const networkTxUrls = {
   56: hash => `https://bscscan.com/tx/${hash}`,
   128: hash => `https://hecoinfo.com/tx/${hash}`,
@@ -58,7 +60,7 @@ const networkBuyUrls = {
 };
 
 export const getNetworkCoin = () => {
-  return nativeCoins.find(coin => coin.chainId === Number(process.env.REACT_APP_NETWORK_ID));
+  return nativeCoins.find(coin => coin.chainId === networkId);
 };
 
 export const getNetworkPools = () => {

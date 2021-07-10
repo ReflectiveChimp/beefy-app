@@ -48,6 +48,9 @@ const initialState = {
   fetchClaimPending: [false, false, false, false, false],
   fetchExitPending: [false, false, false, false, false],
   fetchZapEstimatePending: [false, false, false, false, false],
+  subscriptions: Object.fromEntries(pools.map(pool => [pool.id, {}])),
+  poolStatus: Object.fromEntries(pools.map(pool => [pool.id, pool.status])),
+  poolFinish: {},
 };
 
 export default initialState;

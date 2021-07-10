@@ -427,7 +427,12 @@ export default function StakePool(props) {
       </Grid>
 
       {pools[index].partners.map(partner => (
-        <Grid container className={classes.row} style={customBgImg(partner.background)}>
+        <Grid
+          container
+          key={partner.website}
+          className={classes.row}
+          style={customBgImg(partner.background)}
+        >
           <Grid item xs={12} className={classes.partnerHeader}>
             {isNightMode && partner.logoNight ? (
               <img
