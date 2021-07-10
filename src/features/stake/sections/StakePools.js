@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Grid, makeStyles, Typography } from '@material-ui/core';
 import Disclaimer from 'components/Disclaimer/Disclaimer';
@@ -6,8 +6,8 @@ import styles from './styles/list';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
-import { useSubscriptionPeriodicUpdates } from '../redux/subscription';
-import { getNetworkStakePools, networkId } from '../../helpers/getNetworkData';
+import { useSubscriptionUpdates, useSubscriptions } from '../redux/subscription';
+import { getNetworkStakePools, appNetworkId } from '../../helpers/getNetworkData';
 import { StakePoolsPool } from './StakePoolsPool';
 
 const useStyles = makeStyles(styles);
@@ -18,7 +18,7 @@ export default function StakePools() {
   const { t } = useTranslation();
   const [expanded, setExpanded] = React.useState('faq-1');
   const [showPools, setShowActive] = React.useState('active');
-  useSubscriptionPeriodicUpdates();
+  useSubscriptionUpdates();
 
   const handleChange = useCallback(
     panel => (event, newExpanded) => {
@@ -246,7 +246,7 @@ export default function StakePools() {
               </Typography>
             </AccordionDetails>
           </Accordion>
-          {networkId === 56 ? (
+          {appNetworkId === 56 ? (
             <Accordion square expanded={expanded === 'faq-14'} onChange={handleChange('faq-14')}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography>How to earn free BNB indefinitely?</Typography>

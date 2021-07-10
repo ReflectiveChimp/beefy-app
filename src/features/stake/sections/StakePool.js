@@ -1,16 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BigNumber from 'bignumber.js';
 import { byDecimals } from 'features/helpers/bignumber';
 import { useConnectWallet } from '../../home/redux/hooks';
 import {
-  useCheckApproval,
   useFetchApproval,
   useFetchBalance,
   useFetchClaim,
   useFetchCurrentlyStaked,
   useFetchExit,
-  useFetchHalfTime,
   useFetchPoolData,
   useFetchRewardsAvailable,
   useFetchStake,
@@ -35,47 +33,131 @@ import TelegramIcon from '@material-ui/icons/Telegram';
 import Button from '../../../components/CustomButtons/Button';
 import { styles } from './styles/view';
 import Divider from '@material-ui/core/Divider';
-import { formatApy, formatCountdown } from '../../helpers/format';
+import { formatApy } from '../../helpers/format';
 import { Helmet } from 'react-helmet';
-import { getPageMeta, usePageMeta } from '../../common/getPageMeta';
+import { usePageMeta } from '../../common/getPageMeta';
+import { getNetworkLaunchpools } from '../../helpers/getNetworkData';
+import { useSelector } from 'react-redux';
+import {
+  usePoolFinish,
+  usePoolStaked,
+  usePoolStatus,
+  useSubscriptions,
+  useSubscriptionUpdates,
+} from '../redux/subscription';
+import { StakeCountdown } from './StakeCountdown';
+import ValueLoader from '../../common/components/ValueLoader/ValueLoader';
 
 const useStyles = makeStyles(styles);
+const launchpools = getNetworkLaunchpools();
 
 export default function StakePool(props) {
   const classes = useStyles();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { address } = useConnectWallet();
-  const { allowance, checkApproval } = useCheckApproval();
-  const { balance, fetchBalance } = useFetchBalance();
-  const { currentlyStaked, fetchCurrentlyStaked } = useFetchCurrentlyStaked();
-  const { rewardsAvailable, fetchRewardsAvailable } = useFetchRewardsAvailable();
-  const { halfTime, fetchHalfTime } = useFetchHalfTime();
-  const { fetchApproval, fetchApprovalPending } = useFetchApproval();
-  const { fetchStake, fetchStakePending } = useFetchStake();
-  const { fetchWithdraw, fetchWithdrawPending } = useFetchWithdraw();
-  const { fetchClaim, fetchClaimPending } = useFetchClaim();
-  const { fetchExit, fetchExitPending } = useFetchExit();
+  const { fetchApproval } = useFetchApproval();
+  const { fetchStake } = useFetchStake();
+  const { fetchWithdraw } = useFetchWithdraw();
+  const { fetchClaim } = useFetchClaim();
+  const { fetchExit } = useFetchExit();
   const { pools, poolData, fetchPoolData } = useFetchPoolData();
   const [index, setIndex] = useState(pools.findIndex(p => p.id === props.match.params.id));
   const [showInput, setShowInput] = useState(false);
-  const [isNeedApproval, setIsNeedApproval] = useState(true);
-  const [approvalAble, setApprovalAble] = useState(true);
-  const [stakeAble, setStakeAble] = useState(true);
-  const [withdrawAble, setWithdrawAble] = useState(true);
-  const [claimAble, setClaimAble] = useState(true);
-  const [exitAble, setExitAble] = useState(true);
-  const [myBalance, setMyBalance] = useState(new BigNumber(balance[index]));
-  const [myCurrentlyStaked, setMyCurrentlyStaked] = useState(new BigNumber(currentlyStaked[index]));
-  const [myRewardsAvailable, setMyRewardsAvailable] = useState(
-    new BigNumber(rewardsAvailable[index])
-  );
-  const [myHalfTime, setMyHalfTime] = useState(`0day 00:00:00`);
   const [inputVal, setInputVal] = useState(0);
   const [open, setOpen] = React.useState(false);
   const { getPageMeta } = usePageMeta();
   const theme = useTheme();
   const isNightMode = theme.palette.type === 'dark';
 
+  // Get pool from url
+  const poolId = props.match.params.id;
+
+  const launchpool = useMemo(() => {
+    return launchpools[poolId];
+  }, [poolId]);
+  console.log(poolId, launchpool);
+
+  // Subscribe to updates for this pool
+  const { subscribe } = useSubscriptions();
+  useEffect(() => {
+    return subscribe(launchpool.id, {
+      userApproval: true,
+      userBalance: true,
+      userStaked: true,
+      userRewardsAvailable: true,
+      poolApy: true,
+      poolStaked: true,
+      poolTvl: true,
+      poolFinish: true,
+    });
+  }, [subscribe, launchpool]);
+  useSubscriptionUpdates();
+
+  // Get pool state
+  const poolHideCountdown = launchpool.hideCountdown === true;
+  const poolFinish = usePoolFinish(launchpool.id);
+  const poolStatus = usePoolStatus(launchpool.id);
+  const poolStaked = usePoolStaked(launchpool.id, launchpool.tokenDecimals);
+  const userApproval = useSelector(state => state.stake.userApproval[launchpool.id]);
+  const userBalance = useSelector(state => state.stake.userBalance[launchpool.id]);
+  const userStaked = useSelector(state => state.stake.userStaked[launchpool.id]);
+  const userRewardsAvailable = useSelector(
+    state => state.stake.userRewardsAvailable[launchpool.id]
+  );
+  const fetchApprovalPending = useSelector(
+    state => state.stake.fetchApprovalPending[launchpool.id]
+  );
+  const fetchStakePending = useSelector(state => state.stake.fetchStakePending[launchpool.id]);
+  const fetchWithdrawPending = useSelector(
+    state => state.stake.fetchWithdrawPending[launchpool.id]
+  );
+  const fetchClaimPending = useSelector(state => state.stake.fetchClaimPending[launchpool.id]);
+  const fetchExitPending = useSelector(state => state.stake.fetchExitPending[launchpool.id]);
+
+  // Countdown timer/status
+  const countdownStatus = useMemo(() => {
+    if (poolStatus === 'closed') {
+      return <>{t('Finished')}</>;
+    } else if (poolStatus === 'soon') {
+      return <>{t('Coming-Soon')}</>;
+    } else if (poolFinish && !poolHideCountdown) {
+      return (
+        <>
+          {t('End') + ': '}
+          <StakeCountdown periodFinish={poolFinish} />
+        </>
+      );
+    } else if (poolFinish === undefined && !poolHideCountdown) {
+      return <ValueLoader />;
+    }
+
+    return <></>;
+  }, [poolStatus, poolHideCountdown, poolFinish, t]);
+
+  // Wallet Balance: BigNumber decimals
+  const myBalance = useMemo(() => {
+    return byDecimals(userBalance, launchpool.tokenDecimals);
+  }, [userBalance, launchpool]);
+
+  // Staked: BigNumber decimals
+  const myCurrentlyStaked = useMemo(() => {
+    return byDecimals(userStaked, launchpool.tokenDecimals);
+  }, [userStaked, launchpool]);
+
+  // Rewards available: BigNumber decimals
+  const myRewardsAvailable = useMemo(() => {
+    const amount = byDecimals(userRewardsAvailable, launchpool.earnedTokenDecimals);
+    return launchpool.token === 'mooAutoWbnbFixed'
+      ? amount.multipliedBy(96).dividedBy(100)
+      : amount;
+  }, [userRewardsAvailable, launchpool]);
+
+  // TODO: remove once all instances of index replaced
+  useEffect(() => {
+    setIndex(pools.findIndex(p => p.id === poolId));
+  }, [poolId, pools]);
+
+  // Modal input change
   const changeInputVal = event => {
     let value = event.target.value;
     const changeIsNumber = /^[0-9]+\.?[0-9]*$/;
@@ -96,124 +178,49 @@ export default function StakePool(props) {
     }
   };
 
-  useEffect(() => {
-    setIndex(pools.findIndex(p => p.id === props.match.params.id));
-  }, [props.match.params.id, pools]);
+  // Approval: Needs approval
+  const isNeedApproval = useMemo(() => {
+    const stakeAmount = new BigNumber(inputVal);
+    const approvalAmount = new BigNumber(userApproval);
+    return approvalAmount.isZero() || stakeAmount.isGreaterThan(approvalAmount);
+  }, [userApproval, inputVal]);
 
-  useEffect(() => {
-    setIsNeedApproval(Boolean(allowance[index] === 0));
-  }, [allowance[index], index]);
+  // Approval: Submit tx
+  const onApproval = useCallback(() => {
+    fetchApproval(poolId);
+  }, [fetchApproval, poolId]);
 
-  useEffect(() => {
-    setApprovalAble(!Boolean(fetchApprovalPending[index]));
-  }, [fetchApprovalPending[index], index]);
-
-  const onApproval = () => {
-    fetchApproval(index);
-  };
-
-  useEffect(() => {
-    setStakeAble(!Boolean(fetchStakePending[index]));
-  }, [fetchStakePending[index], index]);
-
-  const onStake = () => {
+  // Stake: Submit tx
+  const onStake = useCallback(() => {
     const amount = new BigNumber(inputVal)
-      .multipliedBy(new BigNumber(10).exponentiatedBy(pools[index].tokenDecimals))
+      .multipliedBy(new BigNumber(10).exponentiatedBy(launchpool.tokenDecimals))
       .toString(10);
-    fetchStake(index, amount);
+    fetchStake(poolId, amount);
     setOpen(false);
-  };
+  }, [fetchStake, inputVal, launchpool, poolId, setOpen]);
 
-  useEffect(() => {
-    const isPending = Boolean(fetchWithdrawPending[index]);
-    setWithdrawAble(!isPending);
-  }, [fetchWithdrawPending[index], index]);
-
-  const onWithdraw = () => {
+  // Withdraw: Submit tx
+  const onWithdraw = useCallback(() => {
     const amount = new BigNumber(inputVal)
-      .multipliedBy(new BigNumber(10).exponentiatedBy(pools[index].tokenDecimals))
+      .multipliedBy(new BigNumber(10).exponentiatedBy(launchpool.tokenDecimals))
       .toString(10);
-    fetchWithdraw(index, amount);
+    fetchWithdraw(poolId, amount);
     setOpen(false);
-  };
+  }, [fetchWithdraw, inputVal, launchpool, poolId, setOpen]);
+
+  // Claim: Submit tx
+  const onClaim = useCallback(() => {
+    fetchClaim(poolId);
+  }, [fetchClaim, poolId]);
+
+  // Exit: Submit tx
+  const onExit = useCallback(() => {
+    fetchExit(poolId);
+  }, [fetchExit, poolId]);
 
   useEffect(() => {
-    const isPending = Boolean(fetchClaimPending[index]);
-    const rewardsAvailableIs0 = rewardsAvailable[index] === 0;
-    setClaimAble(!Boolean(isPending || rewardsAvailableIs0));
-  }, [rewardsAvailable[index], fetchClaimPending[index], index]);
-
-  const onClaim = () => {
-    fetchClaim(index);
-  };
-
-  useEffect(() => {
-    const isPending = Boolean(fetchExitPending[index]);
-    setExitAble(!Boolean(isPending));
-  }, [fetchExitPending[index], index]);
-
-  const onExit = () => {
-    fetchExit(index);
-  };
-
-  useEffect(() => {
-    const amount = byDecimals(balance[index], pools[index].tokenDecimals);
-    setMyBalance(amount);
-  }, [balance[index], index]);
-
-  useEffect(() => {
-    const amount = byDecimals(currentlyStaked[index], pools[index].tokenDecimals);
-    setMyCurrentlyStaked(amount);
-  }, [currentlyStaked[index], index]);
-
-  useEffect(() => {
-    let amount = byDecimals(rewardsAvailable[index], pools[index].earnedTokenDecimals);
-    if (pools[index].token === 'mooAutoWbnbFixed') {
-      amount = amount.multipliedBy(96).dividedBy(100);
-    }
-    setMyRewardsAvailable(amount);
-  }, [rewardsAvailable[index], index]);
-
-  useEffect(() => {
-    if (halfTime[index] == 0) {
-      if (!pools[index].hideCountdown === true) {
-        pools[index].status = 'soon';
-      }
-      return;
-    }
-    const formatTime = () => {
-      const deadline = halfTime[index] * 1000;
-      const time = deadline - new Date().getTime();
-      if (time <= 0) {
-        if (!pools[index].hideCountdown === true) {
-          pools[index].status = 'closed';
-        }
-        return fetchHalfTime(index);
-      }
-      setMyHalfTime(formatCountdown(deadline));
-    };
-    formatTime();
-    const id = setInterval(formatTime, 1000);
-    return () => clearInterval(id);
-  }, [halfTime[index], pools, index]);
-
-  useEffect(() => {
-    if (address) {
-      checkApproval(index);
-      fetchBalance(index);
-      fetchCurrentlyStaked(index);
-      fetchRewardsAvailable(index);
-    }
-    fetchHalfTime(index);
     fetchPoolData(index);
     const id = setInterval(() => {
-      if (address) {
-        checkApproval(index);
-        fetchBalance(index);
-        fetchCurrentlyStaked(index);
-        fetchRewardsAvailable(index);
-      }
-      fetchHalfTime(index);
       fetchPoolData(index);
     }, 10000);
     return () => clearInterval(id);
@@ -249,15 +256,15 @@ export default function StakePool(props) {
       <Helmet>
         <title>
           {getPageMeta('Stake-Meta-Title', {
-            earnedToken: pools[index].earnedToken,
-            boostedBy: pools[index].name,
+            earnedToken: launchpool.earnedToken,
+            boostedBy: launchpool.name,
           })}
         </title>
         <meta
           property="og:title"
           content={getPageMeta('Stake-Meta-Title', {
-            earnedToken: pools[index].earnedToken,
-            boostedBy: pools[index].name,
+            earnedToken: launchpool.earnedToken,
+            boostedBy: launchpool.name,
           })}
         />
       </Helmet>
@@ -267,22 +274,14 @@ export default function StakePool(props) {
         </Button>
       </Grid>
       <Grid item xs={6} className={classes.mb}>
-        <Typography className={classes.countdown}>
-          {pools[index].hideCountdown
-            ? ''
-            : pools[index].status === 'closed'
-            ? t('Finished')
-            : pools[index].status === 'soon'
-            ? t('Coming-Soon')
-            : t('End') + ': ' + myHalfTime}
-        </Typography>
+        <Typography className={classes.countdown}>{countdownStatus}</Typography>
       </Grid>
 
       <Grid
         container
         className={[
           classes.row,
-          pools[index].status === 'closed' || pools[index].status === 'soon' ? classes.retired : '',
+          poolStatus === 'closed' || poolStatus === 'soon' ? classes.retired : '',
         ].join(' ')}
       >
         <Grid item xs={6} sm={6} md={3}>
@@ -326,11 +325,15 @@ export default function StakePool(props) {
         container
         className={[
           classes.row,
-          pools[index].status === 'closed' || pools[index].status === 'soon' ? classes.retired : '',
+          poolStatus === 'closed' || poolStatus === 'soon' ? classes.retired : '',
         ].join(' ')}
       >
         <Grid item xs={12} sm={4}>
-          <Typography className={classes.title}>{poolData[index].staked}</Typography>
+          <Typography className={classes.title}>
+            {poolData[index].staked}
+            <br />
+            {poolStaked.toFixed(2)}
+          </Typography>
           <Typography className={classes.subtitle}>
             {t('Stake-Total-Value-Locked', { mooToken: pools[index].token })}
           </Typography>
@@ -344,12 +347,12 @@ export default function StakePool(props) {
           <Typography className={classes.subtitle}>{t('Vault-APR')}</Typography>
         </Grid>
 
-        {pools[index].status === 'closed' || pools[index].status === 'soon' ? (
+        {poolStatus === 'closed' || poolStatus === 'soon' ? (
           <Box className={classes.ribbon}>
-            <span className={pools[index].status}>
-              {pools[index].status === 'closed'
+            <span className={poolStatus}>
+              {poolStatus === 'closed'
                 ? t('Finished')
-                : pools[index].status === 'soon'
+                : poolStatus === 'soon'
                 ? t('Coming-Soon')
                 : ''}
             </span>
@@ -360,8 +363,8 @@ export default function StakePool(props) {
       </Grid>
 
       <Grid container className={classes.row}>
-        {pools[index].partnership ? (
-          <Box className={classes.boosted}>{t('Stake-BoostedBy', { name: pools[index].name })}</Box>
+        {launchpool.partnership ? (
+          <Box className={classes.boosted}>{t('Stake-BoostedBy', { name: launchpool.name })}</Box>
         ) : (
           ''
         )}
@@ -369,32 +372,36 @@ export default function StakePool(props) {
           {isNeedApproval ? (
             <Button
               className={classes.actionBtn}
-              disabled={!Boolean(approvalAble)}
+              disabled={fetchApprovalPending}
               onClick={onApproval}
             >
               {t('Stake-Button-Approval')}
             </Button>
           ) : (
             <Button
-              className={[classes.actionBtn, pools[index].partnership ? classes.btnBoost : ''].join(
+              className={[classes.actionBtn, launchpool.partnership ? classes.btnBoost : ''].join(
                 ' '
               )}
               onClick={() => {
                 handleModal(true, 'stake');
               }}
             >
-              {pools[index].partnership ? (
+              {launchpool.partnership ? (
                 <Box className={classes.boost}>
                   <Box>
                     <Avatar
-                      src={require('images/' + pools[index].logo)}
-                      alt={pools.earnedToken}
+                      src={require('images/' + launchpool.logo)}
+                      alt={launchpool.token}
                       variant="square"
                       imgProps={{ style: { objectFit: 'contain' } }}
                     />
                   </Box>
                   <Box>
-                    <img className={classes.boostImg} src={require('images/stake/boost.svg')} />
+                    <img
+                      alt={t('Boost')}
+                      className={classes.boostImg}
+                      src={require('images/stake/boost.svg')}
+                    />
                   </Box>
                 </Box>
               ) : (
@@ -406,7 +413,7 @@ export default function StakePool(props) {
         <Grid item xs={12} md={6} lg={3}>
           <Button
             className={classes.actionBtn}
-            disabled={!Boolean(withdrawAble)}
+            disabled={fetchWithdrawPending}
             onClick={() => {
               handleModal(true, 'unstake');
             }}
@@ -415,18 +422,18 @@ export default function StakePool(props) {
           </Button>
         </Grid>
         <Grid item xs={12} md={6} lg={3}>
-          <Button className={classes.actionBtn} disabled={!Boolean(claimAble)} onClick={onClaim}>
+          <Button className={classes.actionBtn} disabled={fetchClaimPending} onClick={onClaim}>
             {t('Stake-Button-Claim-Rewards')}
           </Button>
         </Grid>
         <Grid item xs={12} md={6} lg={3}>
-          <Button className={classes.actionBtn} disabled={!Boolean(exitAble)} onClick={onExit}>
+          <Button className={classes.actionBtn} disabled={fetchExitPending} onClick={onExit}>
             {t('Stake-Button-Exit')}
           </Button>
         </Grid>
       </Grid>
 
-      {pools[index].partners.map(partner => (
+      {launchpool.partners.map(partner => (
         <Grid
           container
           key={partner.website}
@@ -435,13 +442,9 @@ export default function StakePool(props) {
         >
           <Grid item xs={12} className={classes.partnerHeader}>
             {isNightMode && partner.logoNight ? (
-              <img
-                alt={pools[index].name}
-                src={require('images/' + partner.logoNight)}
-                height="60"
-              />
+              <img alt={launchpool.name} src={require('images/' + partner.logoNight)} height="60" />
             ) : partner.logo ? (
-              <img alt={pools[index].name} src={require('images/' + partner.logo)} height="60" />
+              <img alt={launchpool.name} src={require('images/' + partner.logo)} height="60" />
             ) : (
               ''
             )}
@@ -498,7 +501,7 @@ export default function StakePool(props) {
                 );
               }}
             >
-              {pools[index].token} Balance:{' '}
+              {launchpool.token} Balance:{' '}
               {showInput === 'stake' ? myBalance.toString() : myCurrentlyStaked.toString()}
             </Typography>
           </Grid>
@@ -519,18 +522,18 @@ export default function StakePool(props) {
             <Button
               className={[
                 classes.actionBtn,
-                pools[index].partnership && showInput === 'stake' ? classes.btnBoost : '',
+                launchpool.partnership && showInput === 'stake' ? classes.btnBoost : '',
               ].join(' ')}
-              disabled={!Boolean(showInput === 'stake' ? stakeAble : withdrawAble)}
+              disabled={showInput === 'stake' ? fetchStakePending : fetchWithdrawPending}
               onClick={showInput === 'stake' ? onStake : onWithdraw}
             >
               {showInput === 'stake' ? (
-                pools[index].partnership ? (
+                launchpool.partnership ? (
                   <Box className={classes.boost}>
                     <Box>
                       <Avatar
-                        src={require('images/' + pools[index].logo)}
-                        alt={pools.earnedToken}
+                        src={require('images/' + launchpool.logo)}
+                        alt={launchpool.earnedToken}
                         variant="square"
                         imgProps={{ style: { objectFit: 'contain' } }}
                       />

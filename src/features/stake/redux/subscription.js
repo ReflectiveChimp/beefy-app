@@ -1,10 +1,12 @@
 import { getNetworkMulticall, getNetworkStakePools } from '../../helpers/getNetworkData';
-import { useDispatch } from 'react-redux';
-import { useCallback, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useCallback, useEffect, useMemo } from 'react';
 import { MooToken } from '../../configure/abi';
 import { MultiCall } from 'eth-multicall';
 import Web3 from 'web3';
 import { getRpcUrl } from '../../../common/networkSetup';
+import { useConnectWallet } from '../../home/redux/connectWallet';
+import { byDecimals } from '../../helpers/bignumber';
 
 const DEFAULT_UPDATE_INTERVAL = 30000; // ms
 const MIN_UPDATE_DELAY = 10000; // ms (min time between updates)
@@ -14,9 +16,6 @@ const NOOP = () => {};
 // launchpool data
 const pools = getNetworkStakePools();
 const poolsById = Object.fromEntries(pools.map(pool => [pool.id, pool]));
-
-// time RPC was last called
-let subscriptionsLastUpdated = 0;
 
 // what contact calls are needed to perform subscription actions
 const subscriptionCalls = {
@@ -76,13 +75,59 @@ const callFunctions = {
 
 // process subscription and dispatch action to update state
 // data will include call results with keys defined in subscriptionCalls above
+// TODO clear user*** on wallet disconnect
 const subscriptionCallbacks = {
-  userApproval: async (dispatch, pool, data) => {},
-  userBalance: async (dispatch, pool, data) => {},
-  userStaked: async (dispatch, pool, data) => {},
-  userRewardsAvailable: async (dispatch, pool, data) => {},
+  userApproval: async (dispatch, pool, data) => {
+    // Save to state
+    dispatch({
+      type: ACTION_PREFIX + 'userApproval',
+      payload: {
+        id: pool.id,
+        userApproval: data.userApproval,
+      },
+    });
+  },
+  userBalance: async (dispatch, pool, data) => {
+    // Save to state
+    dispatch({
+      type: ACTION_PREFIX + 'userBalance',
+      payload: {
+        id: pool.id,
+        userBalance: data.userBalance,
+      },
+    });
+  },
+  userStaked: async (dispatch, pool, data) => {
+    // Save to state
+    dispatch({
+      type: ACTION_PREFIX + 'userStaked',
+      payload: {
+        id: pool.id,
+        userStaked: data.userStaked,
+      },
+    });
+  },
+  userRewardsAvailable: async (dispatch, pool, data) => {
+    // Save to state
+    dispatch({
+      type: ACTION_PREFIX + 'userRewardsAvailable',
+      payload: {
+        id: pool.id,
+        userRewardsAvailable: data.userRewardsAvailable,
+      },
+    });
+  },
   poolApy: async (dispatch, pool, data) => {},
-  poolStaked: async (dispatch, pool, data) => {},
+  poolStaked: async (dispatch, pool, data) => {
+    // Save to state
+    dispatch({
+      type: ACTION_PREFIX + 'poolStaked',
+      payload: {
+        id: pool.id,
+        poolStaked: data.poolStaked,
+      },
+    });
+  },
   poolTvl: async (dispatch, pool, data) => {},
   poolFinish: async (dispatch, pool, data) => {
     // Calculate pool status
@@ -143,6 +188,42 @@ const subscriptionReducers = {
       },
     };
   },
+  userApproval: (state, payload) => {
+    return {
+      ...state,
+      userApproval: {
+        ...state.userApproval,
+        [payload.id]: payload.userApproval,
+      },
+    };
+  },
+  userBalance: (state, payload) => {
+    return {
+      ...state,
+      userBalance: {
+        ...state.userBalance,
+        [payload.id]: payload.userBalance,
+      },
+    };
+  },
+  userStaked: (state, payload) => {
+    return {
+      ...state,
+      userStaked: {
+        ...state.userStaked,
+        [payload.id]: payload.userStaked,
+      },
+    };
+  },
+  userRewardsAvailable: (state, payload) => {
+    return {
+      ...state,
+      userRewardsAvailable: {
+        ...state.userRewardsAvailable,
+        [payload.id]: payload.userRewardsAvailable,
+      },
+    };
+  },
   poolFinish: (state, payload) => {
     return {
       ...state,
@@ -153,6 +234,15 @@ const subscriptionReducers = {
       poolStatus: {
         ...state.poolStatus,
         [payload.id]: payload.poolStatus,
+      },
+    };
+  },
+  poolStaked: (state, payload) => {
+    return {
+      ...state,
+      poolStaked: {
+        ...state.poolStaked,
+        [payload.id]: payload.poolStaked,
       },
     };
   },
@@ -171,7 +261,8 @@ export function reducer(state, action) {
   return state;
 }
 
-async function updatePools(dispatch, getState) {
+// Exported so can be called on tx receipt (i.e. approval)
+export async function updatePools(dispatch, getState) {
   const { home, stake } = getState();
   const { address: userAddress, web3: userWeb3 } = home;
   const { subscriptions } = stake;
@@ -198,6 +289,8 @@ async function updatePools(dispatch, getState) {
     console.log('activeSubscriptions', 0);
     return;
   }
+
+  console.log('activeSubscriptions', activeSubscriptions);
 
   // Gets list of contract calls required to fulfill active subscriptions
   for (const [poolId, poolSubscriptions] of Object.entries(activeSubscriptions)) {
@@ -340,7 +433,10 @@ async function throttleUpdatePools(dispatch) {
 
 export function useSubscriptions() {
   const dispatch = useDispatch();
-  const update = useCallback(() => dispatch(debounceUpdatePools), [dispatch]);
+  const update = useCallback(
+    (immediate = false) => dispatch(immediate ? updatePools : debounceUpdatePools),
+    [dispatch]
+  );
 
   const unsubscribe = useCallback(
     (poolId, data) => dispatch(createUnsubscribePool(poolId, data)),
@@ -369,13 +465,63 @@ export function useSubscriptions() {
   return { subscribe, update };
 }
 
-export function useSubscriptionPeriodicUpdates(updateInterval = DEFAULT_UPDATE_INTERVAL) {
+export function useSubscriptionUpdates(updateInterval = DEFAULT_UPDATE_INTERVAL) {
   const { update } = useSubscriptions();
+  const { web3, address } = useConnectWallet();
 
+  // update on connect wallet
+  useEffect(() => {
+    if (web3 && address) {
+      update();
+    }
+  }, [web3, address, update]);
+
+  // update on interval
   useEffect(() => {
     const id = setInterval(update, updateInterval);
     return () => clearInterval(id);
   }, [updateInterval, update]);
+}
 
-  // TODO update immediately when wallet connects (w/address)
+export function usePoolFinish(id) {
+  return useSelector(state => state.stake.poolFinish[id]);
+}
+
+export function usePoolStatus(id) {
+  return useSelector(state => state.stake.poolStatus[id]);
+}
+
+export function usePoolStaked(id, decimals) {
+  const raw = useSelector(state => state.stake.poolStaked[id]);
+  return useMemo(() => {
+    return byDecimals(raw, decimals);
+  }, [raw, decimals]);
+}
+
+export function useUserApproval(id, decimals) {
+  const raw = useSelector(state => state.stake.userApproval[id]);
+  return useMemo(() => {
+    return byDecimals(raw, decimals);
+  }, [raw, decimals]);
+}
+
+export function useUserBalance(id, decimals) {
+  const raw = useSelector(state => state.stake.userBalance[id]);
+  return useMemo(() => {
+    return byDecimals(raw, decimals);
+  }, [raw, decimals]);
+}
+
+export function useUserStaked(id, decimals) {
+  const raw = useSelector(state => state.stake.userStaked[id]);
+  return useMemo(() => {
+    return byDecimals(raw, decimals);
+  }, [raw, decimals]);
+}
+
+export function useUserRewardsAvailable(id, decimals) {
+  const raw = useSelector(state => state.stake.userRewardsAvailable[id]);
+  return useMemo(() => {
+    return byDecimals(raw, decimals);
+  }, [raw, decimals]);
 }

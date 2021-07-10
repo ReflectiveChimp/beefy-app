@@ -1,5 +1,9 @@
 import BigNumber from 'bignumber.js';
 
+export const UINT256_MAX = new BigNumber(
+  '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+);
+
 export function isNaN(value) {
   return new BigNumber(`${value}`).isNaN();
 }

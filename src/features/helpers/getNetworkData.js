@@ -1,4 +1,5 @@
 import { connectors } from 'web3modal';
+import { indexBy } from './utils';
 import WalletConnectProvider from '@walletconnect/web3-provider';
 
 import {
@@ -25,7 +26,7 @@ import {
   polygonZaps,
 } from '../configure';
 
-export const networkId = Number(process.env.REACT_APP_NETWORK_ID);
+export const appNetworkId = Number(process.env.REACT_APP_NETWORK_ID);
 
 const networkTxUrls = {
   56: hash => `https://bscscan.com/tx/${hash}`,
@@ -60,7 +61,7 @@ const networkBuyUrls = {
 };
 
 export const getNetworkCoin = () => {
-  return nativeCoins.find(coin => coin.chainId === networkId);
+  return nativeCoins.find(coin => coin.chainId === appNetworkId);
 };
 
 export const getNetworkPools = () => {
@@ -77,6 +78,23 @@ export const getNetworkPools = () => {
       return fantomPools;
     default:
       return [];
+  }
+};
+
+export const getNetworkLaunchpools = (networkId = appNetworkId) => {
+  switch (networkId) {
+    case 56:
+      return indexBy(bscStakePools, 'id');
+    case 128:
+      return indexBy(hecoStakePools, 'id');
+    case 43114:
+      return indexBy(avalancheStakePools, 'id');
+    case 137:
+      return indexBy(polygonStakePools, 'id');
+    case 250:
+      return indexBy(fantomStakePools, 'id');
+    default:
+      return {};
   }
 };
 

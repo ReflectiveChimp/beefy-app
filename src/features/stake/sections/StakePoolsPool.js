@@ -25,7 +25,7 @@ export function StakePoolsPool({ showPools, classes, pool, t }) {
     }
 
     return <></>;
-  }, [status, hideCountdown, periodFinish]);
+  }, [status, hideCountdown, periodFinish, t]);
 
   useEffect(() => {
     return subscribe(id, {
