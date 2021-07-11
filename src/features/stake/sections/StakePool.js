@@ -28,7 +28,7 @@ import TelegramIcon from '@material-ui/icons/Telegram';
 import Button from '../../../components/CustomButtons/Button';
 import { styles } from './styles/view';
 import Divider from '@material-ui/core/Divider';
-import { formatApy, formatPercent } from '../../helpers/format';
+import { formatApy, formatDecimals, formatPercent } from '../../helpers/format';
 import { Helmet } from 'react-helmet';
 import { usePageMeta } from '../../common/getPageMeta';
 import { launchpools } from '../../helpers/getNetworkData';
@@ -295,7 +295,7 @@ export default function StakePool(props) {
         ].join(' ')}
       >
         <Grid item xs={12} sm={4}>
-          <Typography className={classes.title}>{poolStaked.toFixed(2)}</Typography>
+          <Typography className={classes.title}>{formatDecimals(poolStaked)}</Typography>
           <Typography className={classes.subtitle}>
             {t('Stake-Total-Value-Locked', { mooToken: launchpool.token })}
           </Typography>
