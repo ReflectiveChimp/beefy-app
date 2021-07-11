@@ -1,4 +1,4 @@
-import { getNetworkMulticall, getNetworkStakePools } from '../../helpers/getNetworkData';
+import { getNetworkMulticall, launchpools } from '../../helpers/getNetworkData';
 import { useDispatch, useSelector } from 'react-redux';
 import { useCallback, useEffect, useMemo } from 'react';
 import { MooToken } from '../../configure/abi';
@@ -6,16 +6,14 @@ import { MultiCall } from 'eth-multicall';
 import Web3 from 'web3';
 import { getRpcUrl } from '../../../common/networkSetup';
 import { useConnectWallet } from '../../home/redux/connectWallet';
-import { byDecimals } from '../../helpers/bignumber';
+import { byDecimals, ZERO } from '../../helpers/bignumber';
+import { fetchPrice, whenPricesLoaded } from '../../web3';
+import BigNumber from 'bignumber.js';
 
 const DEFAULT_UPDATE_INTERVAL = 30000; // ms
 const MIN_UPDATE_DELAY = 10000; // ms (min time between updates)
 const ACTION_PREFIX = 'launchpools/subscription/';
 const NOOP = () => {};
-
-// launchpool data
-const pools = getNetworkStakePools();
-const poolsById = Object.fromEntries(pools.map(pool => [pool.id, pool]));
 
 // what contact calls are needed to perform subscription actions
 const subscriptionCalls = {
@@ -23,9 +21,8 @@ const subscriptionCalls = {
   userBalance: ['userBalance'],
   userStaked: ['userStaked'],
   userRewardsAvailable: ['userRewardsAvailable'],
-  poolApy: ['poolRewardRate', 'poolStaked', 'tokenPricePerShare'],
+  poolApr: ['poolRewardRate', 'poolStaked', 'tokenPricePerShare'],
   poolStaked: ['poolStaked'],
-  poolTvl: ['poolStaked'],
   poolFinish: ['poolFinish'],
 };
 
@@ -117,7 +114,6 @@ const subscriptionCallbacks = {
       },
     });
   },
-  poolApy: async (dispatch, pool, data) => {},
   poolStaked: async (dispatch, pool, data) => {
     // Save to state
     dispatch({
@@ -128,8 +124,54 @@ const subscriptionCallbacks = {
       },
     });
   },
-  poolTvl: async (dispatch, pool, data) => {},
+  poolApr: async (dispatch, pool, data) => {
+    await whenPricesLoaded();
+
+    const rewardTokenPrice = fetchPrice({ id: pool.earnedOracleId });
+    const rewardTokenDecimals = new BigNumber(10).exponentiatedBy(pool.earnedTokenDecimals);
+    const rewardRate = new BigNumber(data.poolRewardRate);
+    const rewardYearly = rewardRate.times(3600).times(24).times(365);
+    const rewardYearlyUsd = rewardYearly.times(rewardTokenPrice).dividedBy(rewardTokenDecimals);
+
+    const depositTokenDecimals = new BigNumber(10).exponentiatedBy(pool.tokenDecimals);
+    const depositTokenStaked = new BigNumber(data.poolStaked);
+    const depositTokenPrice = fetchPrice({ id: pool.tokenOracleId });
+    let depositTokenStakedUsd = depositTokenStaked
+      .times(depositTokenPrice)
+      .dividedBy(depositTokenDecimals);
+
+    if (pool.isMooStaked) {
+      const pricePerShareDecimals = new BigNumber(10).exponentiatedBy(18);
+      const pricePerShare = new BigNumber(data.tokenPricePerShare);
+
+      depositTokenStakedUsd = depositTokenStaked
+        .times(pricePerShare)
+        .dividedBy(pricePerShareDecimals)
+        .times(depositTokenPrice)
+        .dividedBy(depositTokenDecimals);
+    }
+
+    const apr = rewardYearlyUsd.dividedBy(depositTokenStakedUsd).toNumber();
+
+    // Save to state
+    dispatch({
+      type: ACTION_PREFIX + 'poolApr',
+      payload: {
+        id: pool.id,
+        poolApr: apr,
+      },
+    });
+  },
   poolFinish: async (dispatch, pool, data) => {
+    // Save to state
+    dispatch({
+      type: ACTION_PREFIX + 'poolFinish',
+      payload: {
+        id: pool.id,
+        poolFinish: data.poolFinish,
+      },
+    });
+
     // Calculate pool status
     let poolStatus = pool.status;
     if (pool.status === 'active') {
@@ -140,12 +182,10 @@ const subscriptionCallbacks = {
       }
     }
 
-    // Save to state
     dispatch({
-      type: ACTION_PREFIX + 'poolFinish',
+      type: ACTION_PREFIX + 'poolStatus',
       payload: {
         id: pool.id,
-        poolFinish: data.poolFinish,
         poolStatus,
       },
     });
@@ -155,6 +195,7 @@ const subscriptionCallbacks = {
 // update state with subscription results
 const subscriptionReducers = {
   subscribe: (state, payload) => {
+    console.log('subscribe', payload);
     return {
       ...state,
       subscriptions: {
@@ -172,6 +213,7 @@ const subscriptionReducers = {
     };
   },
   unsubscribe: (state, payload) => {
+    console.log('unsubscribe', payload);
     return {
       ...state,
       subscriptions: {
@@ -231,6 +273,11 @@ const subscriptionReducers = {
         ...state.poolFinish,
         [payload.id]: payload.poolFinish,
       },
+    };
+  },
+  poolStatus: (state, payload) => {
+    return {
+      ...state,
       poolStatus: {
         ...state.poolStatus,
         [payload.id]: payload.poolStatus,
@@ -243,6 +290,15 @@ const subscriptionReducers = {
       poolStaked: {
         ...state.poolStaked,
         [payload.id]: payload.poolStaked,
+      },
+    };
+  },
+  poolApr: (state, payload) => {
+    return {
+      ...state,
+      poolApr: {
+        ...state.poolApr,
+        [payload.id]: payload.poolApr,
       },
     };
   },
@@ -323,7 +379,7 @@ export async function updatePools(dispatch, getState) {
   // Build groups of calls for multicall
   const allCalls = Object.entries(requestedCalls).map(([groupKey, groupContracts]) => {
     return Object.entries(groupContracts).map(([poolId, callKeys]) => {
-      const pool = poolsById[poolId];
+      const pool = launchpools[poolId];
       const contract = callGroupContracts[groupKey](web3, pool);
       const calls = Object.fromEntries(
         Array.from(callKeys).map(call => [call, callFunctions[call](contract, pool, userAddress)])
@@ -356,7 +412,7 @@ export async function updatePools(dispatch, getState) {
     // For each subscription in the pool
     for (const subscriptionKey of poolSubscriptions) {
       callbacks.push(
-        subscriptionCallbacks[subscriptionKey](dispatch, poolsById[poolId], resultsById[poolId])
+        subscriptionCallbacks[subscriptionKey](dispatch, launchpools[poolId], resultsById[poolId])
       );
     }
   }
@@ -431,7 +487,7 @@ async function throttleUpdatePools(dispatch) {
   }
 }
 
-export function useSubscriptions() {
+export function useLaunchpoolSubscriptions() {
   const dispatch = useDispatch();
   const update = useCallback(
     (immediate = false) => dispatch(immediate ? updatePools : debounceUpdatePools),
@@ -465,8 +521,8 @@ export function useSubscriptions() {
   return { subscribe, update };
 }
 
-export function useSubscriptionUpdates(updateInterval = DEFAULT_UPDATE_INTERVAL) {
-  const { update } = useSubscriptions();
+export function useLaunchpoolUpdates(updateInterval = DEFAULT_UPDATE_INTERVAL) {
+  const { update } = useLaunchpoolSubscriptions();
   const { web3, address } = useConnectWallet();
 
   // update on connect wallet
@@ -484,44 +540,53 @@ export function useSubscriptionUpdates(updateInterval = DEFAULT_UPDATE_INTERVAL)
 }
 
 export function usePoolFinish(id) {
-  return useSelector(state => state.stake.poolFinish[id]);
+  return useSelector(state => (id ? state.stake.poolFinish[id] : null));
 }
 
 export function usePoolStatus(id) {
-  return useSelector(state => state.stake.poolStatus[id]);
+  return useSelector(state => (id ? state.stake.poolStatus[id] : null));
+}
+
+export function usePoolApr(id) {
+  return useSelector(state => (id ? state.stake.poolApr[id] : null));
 }
 
 export function usePoolStaked(id, decimals) {
-  const raw = useSelector(state => state.stake.poolStaked[id]);
+  const raw = useSelector(state => (id ? state.stake.poolStaked[id] : null));
+
   return useMemo(() => {
-    return byDecimals(raw, decimals);
+    return raw ? byDecimals(raw, decimals) : ZERO;
   }, [raw, decimals]);
 }
 
 export function useUserApproval(id, decimals) {
-  const raw = useSelector(state => state.stake.userApproval[id]);
+  const raw = useSelector(state => (id ? state.stake.userApproval[id] : null));
+
   return useMemo(() => {
-    return byDecimals(raw, decimals);
+    return raw ? byDecimals(raw, decimals) : ZERO;
   }, [raw, decimals]);
 }
 
 export function useUserBalance(id, decimals) {
-  const raw = useSelector(state => state.stake.userBalance[id]);
+  const raw = useSelector(state => (id ? state.stake.userBalance[id] : null));
+
   return useMemo(() => {
-    return byDecimals(raw, decimals);
+    return raw ? byDecimals(raw, decimals) : ZERO;
   }, [raw, decimals]);
 }
 
 export function useUserStaked(id, decimals) {
-  const raw = useSelector(state => state.stake.userStaked[id]);
+  const raw = useSelector(state => (id ? state.stake.userStaked[id] : null));
+
   return useMemo(() => {
-    return byDecimals(raw, decimals);
+    return raw ? byDecimals(raw, decimals) : ZERO;
   }, [raw, decimals]);
 }
 
 export function useUserRewardsAvailable(id, decimals) {
-  const raw = useSelector(state => state.stake.userRewardsAvailable[id]);
+  const raw = useSelector(state => (id ? state.stake.userRewardsAvailable[id] : null));
+
   return useMemo(() => {
-    return byDecimals(raw, decimals);
+    return raw ? byDecimals(raw, decimals) : ZERO;
   }, [raw, decimals]);
 }

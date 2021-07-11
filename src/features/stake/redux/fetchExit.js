@@ -2,13 +2,11 @@ import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   STAKE_FETCH_EXIT_BEGIN,
-  STAKE_FETCH_EXIT_SUCCESS,
   STAKE_FETCH_EXIT_FAILURE,
+  STAKE_FETCH_EXIT_SUCCESS,
 } from './constants';
 import { enqueueSnackbar } from '../../common/redux/actions';
-import { getNetworkLaunchpools } from '../../helpers/getNetworkData';
-
-const launchpools = getNetworkLaunchpools();
+import { launchpools } from '../../helpers/getNetworkData';
 
 export function fetchExit(id) {
   console.log('fetchExit', id);

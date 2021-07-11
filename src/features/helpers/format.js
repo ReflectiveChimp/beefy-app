@@ -14,6 +14,14 @@ export const formatApy = apy => {
   return `${num.toFixed(2)}${units[order]}%`;
 };
 
+export const formatPercent = (per, dp = 2) => {
+  if (!per) {
+    return '0%';
+  }
+
+  return (per * 100).toFixed(dp) + '%';
+};
+
 export const formatTvl = (tvl, oraclePrice, useOrder = true) => {
   if (oraclePrice) {
     tvl = BigNumber(tvl).times(oraclePrice).toFixed(2);

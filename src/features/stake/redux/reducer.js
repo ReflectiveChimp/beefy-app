@@ -1,9 +1,4 @@
 import initialState from './initialState';
-import { reducer as fetchPoolDataReducer } from './fetchPoolData';
-import { reducer as fetchBalanceReducer } from './fetchBalance';
-import { reducer as fetchCurrentlyStakedReducer } from './fetchCurrentlyStaked';
-import { reducer as fetchRewardsAvailableReducer } from './fetchRewardsAvailable';
-import { reducer as fetchCanWithdrawTimeReducer } from './fetchCanWithdrawTime';
 import { reducer as fetchApprovalReducer } from './fetchApproval';
 import { reducer as fetchStakeReducer } from './fetchStake';
 import { reducer as fetchWithdrawReducer } from './fetchWithdraw';
@@ -12,11 +7,6 @@ import { reducer as fetchExitReducer } from './fetchExit';
 import { reducer as subscriptionReducer } from './subscription';
 
 const reducers = [
-  fetchPoolDataReducer,
-  fetchBalanceReducer,
-  fetchCurrentlyStakedReducer,
-  fetchRewardsAvailableReducer,
-  fetchCanWithdrawTimeReducer,
   fetchApprovalReducer,
   fetchStakeReducer,
   fetchWithdrawReducer,

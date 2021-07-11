@@ -9,9 +9,7 @@ import {
 import { enqueueSnackbar } from '../../common/redux/actions';
 import { UINT256_MAX } from '../../helpers/bignumber';
 import { updatePools } from './subscription';
-import { getNetworkLaunchpools } from '../../helpers/getNetworkData';
-
-const launchpools = getNetworkLaunchpools();
+import { launchpools } from '../../helpers/getNetworkData';
 
 export function fetchApproval(id) {
   console.log('fetchApproval', id);

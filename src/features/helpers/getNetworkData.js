@@ -81,6 +81,23 @@ export const getNetworkPools = () => {
   }
 };
 
+export const getNetworkVaults = (networkId = appNetworkId) => {
+  switch (networkId) {
+    case 56:
+      return indexBy(bscPools, 'id');
+    case 128:
+      return indexBy(hecoPools, 'id');
+    case 43114:
+      return indexBy(avalanchePools, 'id');
+    case 137:
+      return indexBy(polygonPools, 'id');
+    case 250:
+      return indexBy(fantomPools, 'id');
+    default:
+      return {};
+  }
+};
+
 export const getNetworkLaunchpools = (networkId = appNetworkId) => {
   switch (networkId) {
     case 56:
@@ -151,23 +168,6 @@ export const getNetworkZaps = () => {
       return polygonZaps;
     case '250':
       return fantomZaps;
-    default:
-      return [];
-  }
-};
-
-export const getNetworkStakePools = () => {
-  switch (process.env.REACT_APP_NETWORK_ID) {
-    case '56':
-      return bscStakePools;
-    case '128':
-      return hecoStakePools;
-    case '43114':
-      return avalancheStakePools;
-    case '137':
-      return polygonStakePools;
-    case '250':
-      return fantomStakePools;
     default:
       return [];
   }
@@ -395,3 +395,6 @@ export const getNetworkBuyUrl = (networkId = process.env.REACT_APP_NETWORK_ID) =
   networkBuyUrls[networkId];
 export const getNetworkAppUrl = (networkId = process.env.REACT_APP_NETWORK_ID) =>
   networkAppUrls[networkId];
+
+export const launchpools = getNetworkLaunchpools();
+export const vaults = getNetworkVaults();

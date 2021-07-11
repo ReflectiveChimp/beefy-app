@@ -4,6 +4,8 @@ export const UINT256_MAX = new BigNumber(
   '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 );
 
+export const ZERO = new BigNumber('0');
+
 export function isNaN(value) {
   return new BigNumber(`${value}`).isNaN();
 }

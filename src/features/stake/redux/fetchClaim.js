@@ -2,14 +2,12 @@ import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   STAKE_FETCH_CLAIM_BEGIN,
-  STAKE_FETCH_CLAIM_SUCCESS,
   STAKE_FETCH_CLAIM_FAILURE,
+  STAKE_FETCH_CLAIM_SUCCESS,
 } from './constants';
 import { enqueueSnackbar } from '../../common/redux/actions';
-import { getNetworkLaunchpools } from '../../helpers/getNetworkData';
+import { launchpools } from '../../helpers/getNetworkData';
 import { updatePools } from './subscription';
-
-const launchpools = getNetworkLaunchpools();
 
 export function fetchClaim(id) {
   console.log('fetchClaim', id);

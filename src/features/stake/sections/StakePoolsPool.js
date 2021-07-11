@@ -4,14 +4,14 @@ import { Avatar, Box, Grid, Typography } from '@material-ui/core';
 import Button from '../../../components/CustomButtons/Button';
 import { useSelector } from 'react-redux';
 import ValueLoader from '../../common/components/ValueLoader/ValueLoader';
-import { useSubscriptions } from '../redux/subscription';
+import { useLaunchpoolSubscriptions } from '../redux/hooks';
 
 export function StakePoolsPool({ showPools, classes, pool, t }) {
   const id = pool.id;
   const hideCountdown = pool.hideCountdown === true;
   const periodFinish = useSelector(state => state.stake.poolFinish[pool.id]);
   const status = useSelector(state => state.stake.poolStatus[pool.id]);
-  const { subscribe, update } = useSubscriptions();
+  const { subscribe } = useLaunchpoolSubscriptions();
 
   const countdownStatus = useMemo(() => {
     if (status === 'closed') {

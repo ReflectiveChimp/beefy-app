@@ -2,15 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BigNumber from 'bignumber.js';
 import { byDecimals } from 'features/helpers/bignumber';
-import { useConnectWallet } from '../../home/redux/hooks';
 import {
   useFetchApproval,
-  useFetchBalance,
   useFetchClaim,
-  useFetchCurrentlyStaked,
   useFetchExit,
-  useFetchPoolData,
-  useFetchRewardsAvailable,
   useFetchStake,
   useFetchWithdraw,
 } from '../redux/hooks';
@@ -33,35 +28,35 @@ import TelegramIcon from '@material-ui/icons/Telegram';
 import Button from '../../../components/CustomButtons/Button';
 import { styles } from './styles/view';
 import Divider from '@material-ui/core/Divider';
-import { formatApy } from '../../helpers/format';
+import { formatApy, formatPercent } from '../../helpers/format';
 import { Helmet } from 'react-helmet';
 import { usePageMeta } from '../../common/getPageMeta';
-import { getNetworkLaunchpools } from '../../helpers/getNetworkData';
+import { launchpools } from '../../helpers/getNetworkData';
 import { useSelector } from 'react-redux';
 import {
+  usePoolApr,
   usePoolFinish,
   usePoolStaked,
   usePoolStatus,
-  useSubscriptions,
-  useSubscriptionUpdates,
-} from '../redux/subscription';
+  useLaunchpoolSubscriptions,
+  useLaunchpoolUpdates,
+  useUserApproval,
+  useUserBalance,
+  useUserStaked,
+} from '../redux/hooks';
 import { StakeCountdown } from './StakeCountdown';
 import ValueLoader from '../../common/components/ValueLoader/ValueLoader';
 
 const useStyles = makeStyles(styles);
-const launchpools = getNetworkLaunchpools();
 
 export default function StakePool(props) {
   const classes = useStyles();
   const { t } = useTranslation();
-  const { address } = useConnectWallet();
   const { fetchApproval } = useFetchApproval();
   const { fetchStake } = useFetchStake();
   const { fetchWithdraw } = useFetchWithdraw();
   const { fetchClaim } = useFetchClaim();
   const { fetchExit } = useFetchExit();
-  const { pools, poolData, fetchPoolData } = useFetchPoolData();
-  const [index, setIndex] = useState(pools.findIndex(p => p.id === props.match.params.id));
   const [showInput, setShowInput] = useState(false);
   const [inputVal, setInputVal] = useState(0);
   const [open, setOpen] = React.useState(false);
@@ -78,29 +73,29 @@ export default function StakePool(props) {
   console.log(poolId, launchpool);
 
   // Subscribe to updates for this pool
-  const { subscribe } = useSubscriptions();
+  const { subscribe } = useLaunchpoolSubscriptions();
   useEffect(() => {
     return subscribe(launchpool.id, {
       userApproval: true,
       userBalance: true,
       userStaked: true,
       userRewardsAvailable: true,
-      poolApy: true,
       poolStaked: true,
-      poolTvl: true,
+      poolApr: true,
       poolFinish: true,
     });
   }, [subscribe, launchpool]);
-  useSubscriptionUpdates();
+  useLaunchpoolUpdates();
 
   // Get pool state
   const poolHideCountdown = launchpool.hideCountdown === true;
   const poolFinish = usePoolFinish(launchpool.id);
   const poolStatus = usePoolStatus(launchpool.id);
   const poolStaked = usePoolStaked(launchpool.id, launchpool.tokenDecimals);
-  const userApproval = useSelector(state => state.stake.userApproval[launchpool.id]);
-  const userBalance = useSelector(state => state.stake.userBalance[launchpool.id]);
-  const userStaked = useSelector(state => state.stake.userStaked[launchpool.id]);
+  const poolApr = usePoolApr(launchpool.id);
+  const userApproval = useUserApproval(launchpool.id, launchpool.tokenDecimals);
+  const userBalance = useUserBalance(launchpool.id, launchpool.tokenDecimals);
+  const userStaked = useUserStaked(launchpool.id, launchpool.tokenDecimals);
   const userRewardsAvailable = useSelector(
     state => state.stake.userRewardsAvailable[launchpool.id]
   );
@@ -134,16 +129,6 @@ export default function StakePool(props) {
     return <></>;
   }, [poolStatus, poolHideCountdown, poolFinish, t]);
 
-  // Wallet Balance: BigNumber decimals
-  const myBalance = useMemo(() => {
-    return byDecimals(userBalance, launchpool.tokenDecimals);
-  }, [userBalance, launchpool]);
-
-  // Staked: BigNumber decimals
-  const myCurrentlyStaked = useMemo(() => {
-    return byDecimals(userStaked, launchpool.tokenDecimals);
-  }, [userStaked, launchpool]);
-
   // Rewards available: BigNumber decimals
   const myRewardsAvailable = useMemo(() => {
     const amount = byDecimals(userRewardsAvailable, launchpool.earnedTokenDecimals);
@@ -152,10 +137,10 @@ export default function StakePool(props) {
       : amount;
   }, [userRewardsAvailable, launchpool]);
 
-  // TODO: remove once all instances of index replaced
-  useEffect(() => {
-    setIndex(pools.findIndex(p => p.id === poolId));
-  }, [poolId, pools]);
+  // Pool Share
+  const myPoolShare = useMemo(() => {
+    return userStaked.dividedBy(poolStaked).toNumber();
+  }, [userStaked, poolStaked]);
 
   // Modal input change
   const changeInputVal = event => {
@@ -168,12 +153,10 @@ export default function StakePool(props) {
       });
       if (
         new BigNumber(Number(value)).comparedTo(
-          showInput === 'stake' ? myBalance : myCurrentlyStaked
+          showInput === 'stake' ? userBalance : userStaked
         ) === 1
       )
-        return setInputVal(
-          showInput === 'stake' ? myBalance.toString() : myCurrentlyStaked.toString()
-        );
+        return setInputVal(showInput === 'stake' ? userBalance.toString() : userStaked.toString());
       setInputVal(value);
     }
   };
@@ -218,27 +201,10 @@ export default function StakePool(props) {
     fetchExit(poolId);
   }, [fetchExit, poolId]);
 
-  useEffect(() => {
-    fetchPoolData(index);
-    const id = setInterval(() => {
-      fetchPoolData(index);
-    }, 10000);
-    return () => clearInterval(id);
-  }, [address, index]);
-
   const handleModal = (state, action = false) => {
     setOpen(state);
     setShowInput(action);
     setInputVal(0);
-  };
-
-  const getPoolShare = () => {
-    return myCurrentlyStaked.toNumber() > 0
-      ? (
-          (Math.floor(myCurrentlyStaked.toNumber() * 10000) / 10000 / poolData[index].staked) *
-          100
-        ).toFixed(4)
-      : 0;
   };
 
   const customBgImg = img => {
@@ -286,25 +252,25 @@ export default function StakePool(props) {
       >
         <Grid item xs={6} sm={6} md={3}>
           <Avatar
-            src={require('images/' + pools[index].logo)}
-            alt={pools.earnedToken}
+            src={require('images/' + launchpool.logo)}
+            alt={launchpool.earnedToken}
             variant="square"
             imgProps={{ style: { objectFit: 'contain' } }}
           />
         </Grid>
         <Grid item xs={6} sm={6} md={3}>
           <Typography className={classes.title}>{`${
-            Math.floor(myBalance.toNumber() * 10000) / 10000
+            Math.floor(userBalance.toNumber() * 10000) / 10000
           } ${
-            pools[index].token === 'mooAutoWbnbFixed' ? 'mooAutoWBNB' : pools[index].token
+            launchpool.token === 'mooAutoWbnbFixed' ? 'mooAutoWBNB' : launchpool.token
           }`}</Typography>
           <Typography className={classes.subtitle}>{t('Vault-Wallet')}</Typography>
         </Grid>
         <Grid item xs={6} sm={6} md={3}>
           <Typography className={classes.title}>{`${
-            Math.floor(myCurrentlyStaked.toNumber() * 10000) / 10000
+            Math.floor(userStaked.toNumber() * 10000) / 10000
           } ${
-            pools[index].token === 'mooAutoWbnbFixed' ? 'mooAutoWBNB' : pools[index].token
+            launchpool.token === 'mooAutoWbnbFixed' ? 'mooAutoWBNB' : launchpool.token
           }`}</Typography>
           <Typography className={classes.subtitle}>{t('Stake-Balancer-Current-Staked')}</Typography>
         </Grid>
@@ -312,7 +278,7 @@ export default function StakePool(props) {
           <Box display="flex" justifyContent={'center'}>
             <Typography className={classes.title}>{`${
               Math.floor(myRewardsAvailable.toNumber() * 10000) / 10000
-            } ${pools[index].earnedToken}`}</Typography>
+            } ${launchpool.earnedToken}`}</Typography>
             <Avatar className={classes.fire} src={require('images/stake/fire.png')} />
           </Box>
           <Typography className={classes.subtitle}>
@@ -329,21 +295,17 @@ export default function StakePool(props) {
         ].join(' ')}
       >
         <Grid item xs={12} sm={4}>
-          <Typography className={classes.title}>
-            {poolData[index].staked}
-            <br />
-            {poolStaked.toFixed(2)}
-          </Typography>
+          <Typography className={classes.title}>{poolStaked.toFixed(2)}</Typography>
           <Typography className={classes.subtitle}>
-            {t('Stake-Total-Value-Locked', { mooToken: pools[index].token })}
+            {t('Stake-Total-Value-Locked', { mooToken: launchpool.token })}
           </Typography>
         </Grid>
         <Grid item xs={12} sm={4}>
-          <Typography className={classes.title}>{getPoolShare()}%</Typography>
+          <Typography className={classes.title}>{formatPercent(myPoolShare, 4)}</Typography>
           <Typography className={classes.subtitle}>{t('Stake-Your-Pool')}%</Typography>
         </Grid>
         <Grid item xs={12} sm={4}>
-          <Typography className={classes.title}>{formatApy(poolData[index].apy)}</Typography>
+          <Typography className={classes.title}>{formatApy(poolApr)}</Typography>
           <Typography className={classes.subtitle}>{t('Vault-APR')}</Typography>
         </Grid>
 
@@ -496,13 +458,11 @@ export default function StakePool(props) {
             <Typography
               className={classes.balance}
               onClick={() => {
-                setInputVal(
-                  showInput === 'stake' ? myBalance.toString() : myCurrentlyStaked.toString()
-                );
+                setInputVal(showInput === 'stake' ? userBalance.toString() : userStaked.toString());
               }}
             >
               {launchpool.token} Balance:{' '}
-              {showInput === 'stake' ? myBalance.toString() : myCurrentlyStaked.toString()}
+              {showInput === 'stake' ? userBalance.toString() : userStaked.toString()}
             </Typography>
           </Grid>
           <Grid item xs={12}>
@@ -539,7 +499,11 @@ export default function StakePool(props) {
                       />
                     </Box>
                     <Box>
-                      <img className={classes.boostImg} src={require('images/stake/boost.svg')} />
+                      <img
+                        alt={t('Boost')}
+                        className={classes.boostImg}
+                        src={require('images/stake/boost.svg')}
+                      />
                     </Box>
                   </Box>
                 ) : (
