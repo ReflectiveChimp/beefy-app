@@ -2,15 +2,14 @@ import React, { useEffect, useMemo } from 'react';
 import { StakeCountdown } from './StakeCountdown';
 import { Avatar, Box, Grid, Typography } from '@material-ui/core';
 import Button from '../../../components/CustomButtons/Button';
-import { useSelector } from 'react-redux';
 import ValueLoader from '../../common/components/ValueLoader/ValueLoader';
-import { useLaunchpoolSubscriptions } from '../redux/hooks';
+import { useLaunchpoolSubscriptions, usePoolFinish, usePoolStatus } from '../redux/hooks';
 
 export function StakePoolsPool({ showPools, classes, pool, t }) {
   const id = pool.id;
   const hideCountdown = pool.hideCountdown === true;
-  const periodFinish = useSelector(state => state.stake.poolFinish[pool.id]);
-  const status = useSelector(state => state.stake.poolStatus[pool.id]);
+  const poolFinish = usePoolFinish(pool.id);
+  const status = usePoolStatus(pool.id);
   const { subscribe } = useLaunchpoolSubscriptions();
 
   const countdownStatus = useMemo(() => {
@@ -18,14 +17,14 @@ export function StakePoolsPool({ showPools, classes, pool, t }) {
       return <>{t('Finished')}</>;
     } else if (status === 'soon') {
       return <>{t('Coming-Soon')}</>;
-    } else if (periodFinish && !hideCountdown) {
-      return <StakeCountdown periodFinish={periodFinish} />;
-    } else if (periodFinish === undefined && !hideCountdown) {
+    } else if (poolFinish && !hideCountdown) {
+      return <StakeCountdown periodFinish={poolFinish} />;
+    } else if (poolFinish === undefined && !hideCountdown) {
       return <ValueLoader />;
     }
 
     return <></>;
-  }, [status, hideCountdown, periodFinish, t]);
+  }, [status, hideCountdown, poolFinish, t]);
 
   useEffect(() => {
     return subscribe(id, {
