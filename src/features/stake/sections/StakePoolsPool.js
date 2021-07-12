@@ -64,7 +64,7 @@ export function StakePoolsPool({ showPools, classes, pool, t }) {
           <Typography className={classes.countdown}>{countdownStatus}</Typography>
 
           <Typography className={classes.subtitle} variant="body2">
-            {pool.token === 'mooAutoWbnbFixed' ? 'mooAutoWBNB' : pool.token}
+            {pool.token}
           </Typography>
           <Button xs={5} md={2} className={classes.stakeBtn} href={`/stake/pool/${pool.id}`}>
             {status === 'closed' ? t('Stake-Button-Claim') : t('Stake-Button-Stake')}
