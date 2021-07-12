@@ -1,13 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BigNumber from 'bignumber.js';
-import { byDecimals } from 'features/helpers/bignumber';
 import {
   useFetchApproval,
   useFetchClaim,
   useFetchExit,
   useFetchStake,
   useFetchWithdraw,
+  useLaunchpoolSubscriptions,
+  useLaunchpoolUpdates,
+  usePoolApr,
+  usePoolFinish,
+  usePoolStaked,
+  usePoolStatus,
+  useUserApproval,
+  useUserBalance,
+  useUserRewardsAvailable,
+  useUserStaked,
 } from '../redux/hooks';
 
 import {
@@ -33,17 +42,6 @@ import { Helmet } from 'react-helmet';
 import { usePageMeta } from '../../common/getPageMeta';
 import { launchpools } from '../../helpers/getNetworkData';
 import { useSelector } from 'react-redux';
-import {
-  usePoolApr,
-  usePoolFinish,
-  usePoolStaked,
-  usePoolStatus,
-  useLaunchpoolSubscriptions,
-  useLaunchpoolUpdates,
-  useUserApproval,
-  useUserBalance,
-  useUserStaked,
-} from '../redux/hooks';
 import { StakeCountdown } from './StakeCountdown';
 import ValueLoader from '../../common/components/ValueLoader/ValueLoader';
 
@@ -70,7 +68,6 @@ export default function StakePool(props) {
   const launchpool = useMemo(() => {
     return launchpools[poolId];
   }, [poolId]);
-  console.log(poolId, launchpool);
 
   // Subscribe to updates for this pool
   const { subscribe } = useLaunchpoolSubscriptions();
@@ -96,9 +93,11 @@ export default function StakePool(props) {
   const userApproval = useUserApproval(launchpool.id, launchpool.tokenDecimals);
   const userBalance = useUserBalance(launchpool.id, launchpool.tokenDecimals);
   const userStaked = useUserStaked(launchpool.id, launchpool.tokenDecimals);
-  const userRewardsAvailable = useSelector(
-    state => state.stake.userRewardsAvailable[launchpool.id]
+  const userRewardsAvailable = useUserRewardsAvailable(
+    launchpool.id,
+    launchpool.earnedTokenDecimals
   );
+
   const fetchApprovalPending = useSelector(
     state => state.stake.fetchApprovalPending[launchpool.id]
   );
@@ -128,14 +127,6 @@ export default function StakePool(props) {
 
     return <></>;
   }, [poolStatus, poolHideCountdown, poolFinish, t]);
-
-  // Rewards available: BigNumber decimals
-  const myRewardsAvailable = useMemo(() => {
-    const amount = byDecimals(userRewardsAvailable, launchpool.earnedTokenDecimals);
-    return launchpool.token === 'mooAutoWbnbFixed'
-      ? amount.multipliedBy(96).dividedBy(100)
-      : amount;
-  }, [userRewardsAvailable, launchpool]);
 
   // Pool Share
   const myPoolShare = useMemo(() => {
@@ -249,6 +240,7 @@ export default function StakePool(props) {
           classes.row,
           poolStatus === 'closed' || poolStatus === 'soon' ? classes.retired : '',
         ].join(' ')}
+        alignItems="center"
       >
         <Grid item xs={6} sm={6} md={3}>
           <Avatar
@@ -259,28 +251,18 @@ export default function StakePool(props) {
           />
         </Grid>
         <Grid item xs={6} sm={6} md={3}>
-          <Typography className={classes.title}>{`${
-            Math.floor(userBalance.toNumber() * 10000) / 10000
-          } ${
-            launchpool.token === 'mooAutoWbnbFixed' ? 'mooAutoWBNB' : launchpool.token
-          }`}</Typography>
+          <Typography className={classes.title}>{formatDecimals(userBalance)}</Typography>
+          <Typography className={classes.tokenTitle}>{launchpool.token}</Typography>
           <Typography className={classes.subtitle}>{t('Vault-Wallet')}</Typography>
         </Grid>
         <Grid item xs={6} sm={6} md={3}>
-          <Typography className={classes.title}>{`${
-            Math.floor(userStaked.toNumber() * 10000) / 10000
-          } ${
-            launchpool.token === 'mooAutoWbnbFixed' ? 'mooAutoWBNB' : launchpool.token
-          }`}</Typography>
+          <Typography className={classes.title}>{formatDecimals(userStaked)}</Typography>
+          <Typography className={classes.tokenTitle}>{launchpool.token}</Typography>
           <Typography className={classes.subtitle}>{t('Stake-Balancer-Current-Staked')}</Typography>
         </Grid>
         <Grid item xs={6} sm={6} md={3}>
-          <Box display="flex" justifyContent={'center'}>
-            <Typography className={classes.title}>{`${
-              Math.floor(myRewardsAvailable.toNumber() * 10000) / 10000
-            } ${launchpool.earnedToken}`}</Typography>
-            <Avatar className={classes.fire} src={require('images/stake/fire.png')} />
-          </Box>
+          <Typography className={classes.title}>{formatDecimals(userRewardsAvailable)}</Typography>
+          <Typography className={classes.tokenTitle}>{launchpool.earnedToken}</Typography>
           <Typography className={classes.subtitle}>
             {t('Stake-Balancer-Rewards-Available')}
           </Typography>

@@ -19,7 +19,7 @@ export const formatPercent = (per, dp = 2) => {
     return '0%';
   }
 
-  return (per * 100).toFixed(dp) + '%';
+  return stripTrailingZeros((per * 100).toFixed(dp)) + '%';
 };
 
 export const formatTvl = (tvl, oraclePrice, useOrder = true) => {
@@ -69,6 +69,15 @@ export const formatCountdown = deadline => {
   return `${day}day ${hours}:${minutes}:${seconds}`;
 };
 
-export const formatDecimals = number => {
-  return number >= 10 ? number.toFixed(4) : number.isEqualTo(0) ? 0 : number.toFixed(8);
+export const stripTrailingZeros = str => {
+  return str.replace(/(\.[0-9]*?)(0+$)/, '$1').replace(/\.$/, '');
+};
+
+export const formatDecimals = (number, maxPlaces = 8) => {
+  if (number.isZero()) {
+    return '0';
+  }
+
+  const places = Math.min(maxPlaces, number >= 10 ? 4 : 8);
+  return stripTrailingZeros(number.toFixed(places));
 };

@@ -9,6 +9,8 @@ import { useConnectWallet } from '../../home/redux/connectWallet';
 import { byDecimals, ZERO } from '../../helpers/bignumber';
 import { fetchPrice, whenPricesLoaded } from '../../web3';
 import BigNumber from 'bignumber.js';
+import { HOME_DISCONNECT_WALLET_BEGIN } from '../../home/redux/constants';
+import { initialUserState } from './initialState';
 
 const DEFAULT_UPDATE_INTERVAL = 30000; // ms
 const MIN_UPDATE_DELAY = 10000; // ms (min time between updates)
@@ -75,6 +77,11 @@ const callFunctions = {
 // TODO clear user*** on wallet disconnect
 const subscriptionCallbacks = {
   userApproval: async (dispatch, pool, data) => {
+    if (data.userApproval === undefined) {
+      console.warn('Missing data for launchpools userApproval.');
+      return;
+    }
+
     // Save to state
     dispatch({
       type: ACTION_PREFIX + 'userApproval',
@@ -85,6 +92,11 @@ const subscriptionCallbacks = {
     });
   },
   userBalance: async (dispatch, pool, data) => {
+    if (data.userBalance === undefined) {
+      console.warn('Missing data for launchpools userBalance.');
+      return;
+    }
+
     // Save to state
     dispatch({
       type: ACTION_PREFIX + 'userBalance',
@@ -95,6 +107,11 @@ const subscriptionCallbacks = {
     });
   },
   userStaked: async (dispatch, pool, data) => {
+    if (data.userStaked === undefined) {
+      console.warn('Missing data for launchpools userStaked.');
+      return;
+    }
+
     // Save to state
     dispatch({
       type: ACTION_PREFIX + 'userStaked',
@@ -105,6 +122,11 @@ const subscriptionCallbacks = {
     });
   },
   userRewardsAvailable: async (dispatch, pool, data) => {
+    if (data.userRewardsAvailable === undefined) {
+      console.warn('Missing data for launchpools userRewardsAvailable.');
+      return;
+    }
+
     // Save to state
     dispatch({
       type: ACTION_PREFIX + 'userRewardsAvailable',
@@ -115,6 +137,11 @@ const subscriptionCallbacks = {
     });
   },
   poolStaked: async (dispatch, pool, data) => {
+    if (data.poolStaked === undefined) {
+      console.warn('Missing data for launchpools poolStaked.');
+      return;
+    }
+
     // Save to state
     dispatch({
       type: ACTION_PREFIX + 'poolStaked',
@@ -125,6 +152,15 @@ const subscriptionCallbacks = {
     });
   },
   poolApr: async (dispatch, pool, data) => {
+    if (
+      data.poolRewardRate === undefined ||
+      data.poolStaked === undefined ||
+      (pool.isMooStaked && data.tokenPricePerShare === undefined)
+    ) {
+      console.warn('Missing data for launchpools poolApr.');
+      return;
+    }
+
     await whenPricesLoaded();
 
     const rewardTokenPrice = fetchPrice({ id: pool.earnedOracleId });
@@ -144,11 +180,9 @@ const subscriptionCallbacks = {
       const pricePerShareDecimals = new BigNumber(10).exponentiatedBy(18);
       const pricePerShare = new BigNumber(data.tokenPricePerShare);
 
-      depositTokenStakedUsd = depositTokenStaked
+      depositTokenStakedUsd = depositTokenStakedUsd
         .times(pricePerShare)
-        .dividedBy(pricePerShareDecimals)
-        .times(depositTokenPrice)
-        .dividedBy(depositTokenDecimals);
+        .dividedBy(pricePerShareDecimals);
     }
 
     const apr = rewardYearlyUsd.dividedBy(depositTokenStakedUsd).toNumber();
@@ -163,6 +197,11 @@ const subscriptionCallbacks = {
     });
   },
   poolFinish: async (dispatch, pool, data) => {
+    if (data.poolFinish === undefined) {
+      console.warn('Missing data for launchpools poolFinish.');
+      return;
+    }
+
     // Save to state
     dispatch({
       type: ACTION_PREFIX + 'poolFinish',
@@ -172,13 +211,17 @@ const subscriptionCallbacks = {
       },
     });
 
-    // Calculate pool status
+    // Calculate pool status based on initial status
     let poolStatus = pool.status;
     if (pool.status === 'active') {
       if (data.poolFinish === '0') {
         poolStatus = 'soon';
       } else if (data.poolFinish * 1000 < Date.now()) {
         poolStatus = 'closed';
+      }
+    } else if (pool.status === 'soon') {
+      if (data.poolFinish * 1000 >= Date.now()) {
+        poolStatus = 'active';
       }
     }
 
@@ -195,7 +238,6 @@ const subscriptionCallbacks = {
 // update state with subscription results
 const subscriptionReducers = {
   subscribe: (state, payload) => {
-    console.log('subscribe', payload);
     return {
       ...state,
       subscriptions: {
@@ -213,7 +255,6 @@ const subscriptionReducers = {
     };
   },
   unsubscribe: (state, payload) => {
-    console.log('unsubscribe', payload);
     return {
       ...state,
       subscriptions: {
@@ -231,76 +272,108 @@ const subscriptionReducers = {
     };
   },
   userApproval: (state, payload) => {
-    return {
-      ...state,
-      userApproval: {
-        ...state.userApproval,
-        [payload.id]: payload.userApproval,
-      },
-    };
+    if (state.userApproval[payload.id] !== payload.userApproval) {
+      return {
+        ...state,
+        userApproval: {
+          ...state.userApproval,
+          [payload.id]: payload.userApproval,
+        },
+      };
+    }
+
+    return state;
   },
   userBalance: (state, payload) => {
-    return {
-      ...state,
-      userBalance: {
-        ...state.userBalance,
-        [payload.id]: payload.userBalance,
-      },
-    };
+    if (state.userBalance[payload.id] !== payload.userBalance) {
+      return {
+        ...state,
+        userBalance: {
+          ...state.userBalance,
+          [payload.id]: payload.userBalance,
+        },
+      };
+    }
+
+    return state;
   },
   userStaked: (state, payload) => {
-    return {
-      ...state,
-      userStaked: {
-        ...state.userStaked,
-        [payload.id]: payload.userStaked,
-      },
-    };
+    if (state.userStaked[payload.id] !== payload.userStaked) {
+      return {
+        ...state,
+        userStaked: {
+          ...state.userStaked,
+          [payload.id]: payload.userStaked,
+        },
+      };
+    }
+
+    return state;
   },
   userRewardsAvailable: (state, payload) => {
-    return {
-      ...state,
-      userRewardsAvailable: {
-        ...state.userRewardsAvailable,
-        [payload.id]: payload.userRewardsAvailable,
-      },
-    };
+    if (state.userRewardsAvailable[payload.id] !== payload.userRewardsAvailable) {
+      return {
+        ...state,
+        userRewardsAvailable: {
+          ...state.userRewardsAvailable,
+          [payload.id]: payload.userRewardsAvailable,
+        },
+      };
+    }
+
+    return state;
   },
   poolFinish: (state, payload) => {
-    return {
-      ...state,
-      poolFinish: {
-        ...state.poolFinish,
-        [payload.id]: payload.poolFinish,
-      },
-    };
+    if (state.poolFinish[payload.id] !== payload.poolFinish) {
+      return {
+        ...state,
+        poolFinish: {
+          ...state.poolFinish,
+          [payload.id]: payload.poolFinish,
+        },
+      };
+    }
+
+    return state;
   },
   poolStatus: (state, payload) => {
-    return {
-      ...state,
-      poolStatus: {
-        ...state.poolStatus,
-        [payload.id]: payload.poolStatus,
-      },
-    };
+    if (state.poolStatus[payload.id] !== payload.poolStatus) {
+      return {
+        ...state,
+        poolStatus: {
+          ...state.poolStatus,
+          [payload.id]: payload.poolStatus,
+        },
+      };
+    }
+
+    return state;
   },
   poolStaked: (state, payload) => {
-    return {
-      ...state,
-      poolStaked: {
-        ...state.poolStaked,
-        [payload.id]: payload.poolStaked,
-      },
-    };
+    if (state.poolStaked[payload.id] !== payload.poolStaked) {
+      return {
+        ...state,
+        poolStaked: {
+          ...state.poolStaked,
+          [payload.id]: payload.poolStaked,
+        },
+      };
+    }
+
+    return state;
   },
   poolApr: (state, payload) => {
-    return {
-      ...state,
-      poolApr: {
-        ...state.poolApr,
-        [payload.id]: payload.poolApr,
-      },
-    };
+    if (state.poolApr[payload.id] !== payload.poolApr) {
+      return {
+        ...state,
+        poolApr: {
+          ...state.poolApr,
+          [payload.id]: payload.poolApr,
+        },
+      };
+    }
+
+    return state;
   },
 };
 
@@ -312,6 +385,12 @@ export function reducer(state, action) {
     } else {
       console.error(`No reducer for launchpool action ${key}`);
     }
+  } else if (action.type === HOME_DISCONNECT_WALLET_BEGIN) {
+    // Clear user values on wallet disconnect
+    return {
+      ...state,
+      ...initialUserState,
+    };
   }
 
   return state;
@@ -342,11 +421,8 @@ export async function updatePools(dispatch, getState) {
 
   // No active subscriptions?
   if (Object.keys(activeSubscriptions).length === 0) {
-    console.log('activeSubscriptions', 0);
     return;
   }
-
-  console.log('activeSubscriptions', activeSubscriptions);
 
   // Gets list of contract calls required to fulfill active subscriptions
   for (const [poolId, poolSubscriptions] of Object.entries(activeSubscriptions)) {
@@ -404,8 +480,6 @@ export async function updatePools(dispatch, getState) {
     }
   }
 
-  console.log('resultsById', resultsById);
-
   // Subscription callsbacks
   const callbacks = [];
   for (const [poolId, poolSubscriptions] of Object.entries(activeSubscriptions)) {
@@ -456,7 +530,6 @@ async function debounceUpdatePools(dispatch) {
 
   debounceUpdatePoolsTimer = setTimeout(() => {
     debounceUpdatePoolsTimer = null;
-    console.log('debounce->throttleUpdatePools');
     dispatch(throttleUpdatePools);
   }, 100);
 }
@@ -477,10 +550,8 @@ async function throttleUpdatePools(dispatch) {
 
   if (timeSinceLast >= MIN_UPDATE_DELAY) {
     throttleUpdatePoolsLastUpdate = now;
-    console.log('throttle->updatePools');
     dispatch(updatePools);
   } else {
-    console.log('throttling...', timeSinceLast);
     throttleUpdatePoolsTimer = setTimeout(() => {
       dispatch(throttleUpdatePools);
     }, MIN_UPDATE_DELAY - timeSinceLast);
