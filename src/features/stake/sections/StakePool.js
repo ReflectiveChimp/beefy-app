@@ -155,9 +155,10 @@ export default function StakePool(props) {
   // Approval: Needs approval
   const isNeedApproval = useMemo(() => {
     const stakeAmount = new BigNumber(inputVal);
-    const approvalAmount = new BigNumber(userApproval);
-    return approvalAmount.isZero() || stakeAmount.isGreaterThan(approvalAmount);
-  }, [userApproval, inputVal]);
+    return (
+      userApproval.isZero() || (showInput === 'stake' && stakeAmount.isGreaterThan(userApproval))
+    );
+  }, [userApproval, inputVal, showInput]);
 
   // Approval: Submit tx
   const onApproval = useCallback(() => {
@@ -475,7 +476,9 @@ export default function StakePool(props) {
                 classes.actionBtn,
                 launchpool.partnership && showInput === 'stake' ? classes.btnBoost : '',
               ].join(' ')}
-              disabled={showInput === 'stake' ? fetchStakePending : fetchWithdrawPending}
+              disabled={
+                showInput === 'stake' ? fetchStakePending || isNeedApproval : fetchWithdrawPending
+              }
               onClick={showInput === 'stake' ? onStake : onWithdraw}
             >
               {showInput === 'stake' ? (
