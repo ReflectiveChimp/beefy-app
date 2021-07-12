@@ -7,12 +7,12 @@ import {
   STAKE_FETCH_APPROVAL_SUCCESS,
 } from './constants';
 import { enqueueSnackbar } from '../../common/redux/actions';
-import { UINT256_MAX } from '../../helpers/bignumber';
 import { updatePools } from './subscription';
 import { launchpools } from '../../helpers/getNetworkData';
 
+const UNLIMITED_APPROVAL = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+
 export function fetchApproval(id) {
-  console.log('fetchApproval', id);
   return (dispatch, getState) => {
     // optionally you can have getState as the second argument
     dispatch({
@@ -33,7 +33,7 @@ export function fetchApproval(id) {
       const contract = new web3.eth.Contract(erc20ABI, tokenAddress);
 
       contract.methods
-        .approve(earnContractAddress, UINT256_MAX)
+        .approve(earnContractAddress, UNLIMITED_APPROVAL)
         .send({ from: address })
         .on('transactionHash', function (hash) {
           dispatch(

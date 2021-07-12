@@ -10,7 +10,6 @@ import { launchpools } from '../../helpers/getNetworkData';
 import { updatePools } from './subscription';
 
 export function fetchClaim(id) {
-  console.log('fetchClaim', id);
   return (dispatch, getState) => {
     // optionally you can have getState as the second argument
     dispatch({

@@ -10,7 +10,6 @@ import { launchpools } from '../../helpers/getNetworkData';
 import { updatePools } from './subscription';
 
 export function fetchStake(id, amount) {
-  console.log('fetchStake', id, amount);
   return (dispatch, getState) => {
     // optionally you can have getState as the second argument
     dispatch({

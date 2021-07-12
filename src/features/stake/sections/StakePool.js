@@ -326,6 +326,7 @@ export default function StakePool(props) {
               className={[classes.actionBtn, launchpool.partnership ? classes.btnBoost : ''].join(
                 ' '
               )}
+              disabled={fetchStakePending || userBalance.isZero()}
               onClick={() => {
                 handleModal(true, 'stake');
               }}
@@ -357,7 +358,7 @@ export default function StakePool(props) {
         <Grid item xs={12} md={6} lg={3}>
           <Button
             className={classes.actionBtn}
-            disabled={fetchWithdrawPending}
+            disabled={fetchWithdrawPending || userStaked.isZero()}
             onClick={() => {
               handleModal(true, 'unstake');
             }}
@@ -366,12 +367,20 @@ export default function StakePool(props) {
           </Button>
         </Grid>
         <Grid item xs={12} md={6} lg={3}>
-          <Button className={classes.actionBtn} disabled={fetchClaimPending} onClick={onClaim}>
+          <Button
+            className={classes.actionBtn}
+            disabled={fetchClaimPending || userRewardsAvailable.isZero()}
+            onClick={onClaim}
+          >
             {t('Stake-Button-Claim-Rewards')}
           </Button>
         </Grid>
         <Grid item xs={12} md={6} lg={3}>
-          <Button className={classes.actionBtn} disabled={fetchExitPending} onClick={onExit}>
+          <Button
+            className={classes.actionBtn}
+            disabled={fetchExitPending || userStaked.isZero() || userRewardsAvailable.isZero()}
+            onClick={onExit}
+          >
             {t('Stake-Button-Exit')}
           </Button>
         </Grid>

@@ -33,7 +33,6 @@ export default function StakePools() {
     [setShowActive]
   );
 
-  console.log('StakePools:render');
   return (
     <Grid container>
       <Grid item xs={12}>

@@ -10,7 +10,6 @@ import { launchpools } from '../../helpers/getNetworkData';
 import { updatePools } from './subscription';
 
 export function fetchWithdraw(id, amount) {
-  console.log('fetchWithdraw', id, amount);
   return (dispatch, getState) => {
     // optionally you can have getState as the second argument
     dispatch({

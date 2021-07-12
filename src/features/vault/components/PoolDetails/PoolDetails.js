@@ -45,7 +45,6 @@ const PoolDetails = ({ vaultId }) => {
   const { getPageMeta } = usePageMeta();
   const { subscribe } = useLaunchpoolSubscriptions();
   const launchpoolId = useSelector(state => state.vault.vaultLaunchpools[pool.id]);
-  console.log(launchpoolId);
   const launchpool = launchpoolId ? launchpools[launchpoolId] : null;
   const launchpoolApr = usePoolApr(launchpoolId);
 

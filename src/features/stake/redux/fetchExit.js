@@ -9,7 +9,6 @@ import { enqueueSnackbar } from '../../common/redux/actions';
 import { launchpools } from '../../helpers/getNetworkData';
 
 export function fetchExit(id) {
-  console.log('fetchExit', id);
   return (dispatch, getState) => {
     // optionally you can have getState as the second argument
     dispatch({
