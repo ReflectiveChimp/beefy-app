@@ -474,15 +474,21 @@ export default function StakePool(props) {
             <Button
               className={[
                 classes.actionBtn,
-                launchpool.partnership && showInput === 'stake' ? classes.btnBoost : '',
+                launchpool.partnership && showInput === 'stake' && !isNeedApproval
+                  ? classes.btnBoost
+                  : '',
               ].join(' ')}
               disabled={
-                showInput === 'stake' ? fetchStakePending || isNeedApproval : fetchWithdrawPending
+                showInput === 'stake'
+                  ? fetchStakePending || (fetchApprovalPending && isNeedApproval)
+                  : fetchWithdrawPending
               }
-              onClick={showInput === 'stake' ? onStake : onWithdraw}
+              onClick={showInput === 'stake' ? (isNeedApproval ? onApproval : onStake) : onWithdraw}
             >
               {showInput === 'stake' ? (
-                launchpool.partnership ? (
+                isNeedApproval ? (
+                  t('Stake-Button-Approval')
+                ) : launchpool.partnership ? (
                   <Box className={classes.boost}>
                     <Box>
                       <Avatar

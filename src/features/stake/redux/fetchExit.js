@@ -7,6 +7,7 @@ import {
 } from './constants';
 import { enqueueSnackbar } from '../../common/redux/actions';
 import { launchpools } from '../../helpers/getNetworkData';
+import { updatePools } from './subscription';
 
 export function fetchExit(id) {
   return (dispatch, getState) => {
@@ -55,6 +56,7 @@ export function fetchExit(id) {
             })
           );
           dispatch({ type: STAKE_FETCH_EXIT_SUCCESS, id });
+          dispatch(updatePools);
           resolve();
         })
         .on('error', function (error) {
