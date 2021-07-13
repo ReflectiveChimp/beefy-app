@@ -622,42 +622,44 @@ export function usePoolApr(id) {
   return useSelector(state => (id ? state.stake.poolApr[id] : null));
 }
 
-export function usePoolStaked(id, decimals) {
-  const raw = useSelector(state => (id ? state.stake.poolStaked[id] : null));
+export function usePoolStaked(id) {
+  const raw = useSelector(state => (id && id in launchpools ? state.stake.poolStaked[id] : null));
 
   return useMemo(() => {
-    return raw ? byDecimals(raw, decimals) : ZERO;
-  }, [raw, decimals]);
+    return raw ? byDecimals(raw, launchpools[id].tokenDecimals) : ZERO;
+  }, [raw, id]);
 }
 
-export function useUserApproval(id, decimals) {
-  const raw = useSelector(state => (id ? state.stake.userApproval[id] : null));
+export function useUserApproval(id) {
+  const raw = useSelector(state => (id && id in launchpools ? state.stake.userApproval[id] : null));
 
   return useMemo(() => {
-    return raw ? byDecimals(raw, decimals) : ZERO;
-  }, [raw, decimals]);
+    return raw ? byDecimals(raw, launchpools[id].tokenDecimals) : ZERO;
+  }, [raw, id]);
 }
 
-export function useUserBalance(id, decimals) {
-  const raw = useSelector(state => (id ? state.stake.userBalance[id] : null));
+export function useUserBalance(id) {
+  const raw = useSelector(state => (id && id in launchpools ? state.stake.userBalance[id] : null));
 
   return useMemo(() => {
-    return raw ? byDecimals(raw, decimals) : ZERO;
-  }, [raw, decimals]);
+    return raw ? byDecimals(raw, launchpools[id].tokenDecimals) : ZERO;
+  }, [raw, id]);
 }
 
-export function useUserStaked(id, decimals) {
-  const raw = useSelector(state => (id ? state.stake.userStaked[id] : null));
+export function useUserStaked(id) {
+  const raw = useSelector(state => (id && id in launchpools ? state.stake.userStaked[id] : null));
 
   return useMemo(() => {
-    return raw ? byDecimals(raw, decimals) : ZERO;
-  }, [raw, decimals]);
+    return raw ? byDecimals(raw, launchpools[id].tokenDecimals) : ZERO;
+  }, [raw, id]);
 }
 
-export function useUserRewardsAvailable(id, decimals) {
-  const raw = useSelector(state => (id ? state.stake.userRewardsAvailable[id] : null));
+export function useUserRewardsAvailable(id) {
+  const raw = useSelector(state =>
+    id && id in launchpools ? state.stake.userRewardsAvailable[id] : null
+  );
 
   return useMemo(() => {
-    return raw ? byDecimals(raw, decimals) : ZERO;
-  }, [raw, decimals]);
+    return raw ? byDecimals(raw, launchpools[id].earnedTokenDecimals) : ZERO;
+  }, [raw, id]);
 }

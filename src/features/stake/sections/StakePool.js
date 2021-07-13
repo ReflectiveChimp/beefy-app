@@ -88,15 +88,12 @@ export default function StakePool(props) {
   const poolHideCountdown = launchpool.hideCountdown === true;
   const poolFinish = usePoolFinish(launchpool.id);
   const poolStatus = usePoolStatus(launchpool.id);
-  const poolStaked = usePoolStaked(launchpool.id, launchpool.tokenDecimals);
+  const poolStaked = usePoolStaked(launchpool.id);
   const poolApr = usePoolApr(launchpool.id);
-  const userApproval = useUserApproval(launchpool.id, launchpool.tokenDecimals);
-  const userBalance = useUserBalance(launchpool.id, launchpool.tokenDecimals);
-  const userStaked = useUserStaked(launchpool.id, launchpool.tokenDecimals);
-  const userRewardsAvailable = useUserRewardsAvailable(
-    launchpool.id,
-    launchpool.earnedTokenDecimals
-  );
+  const userApproval = useUserApproval(launchpool.id);
+  const userBalance = useUserBalance(launchpool.id);
+  const userStaked = useUserStaked(launchpool.id);
+  const userRewardsAvailable = useUserRewardsAvailable(launchpool.id);
 
   const fetchApprovalPending = useSelector(
     state => state.stake.fetchApprovalPending[launchpool.id]
