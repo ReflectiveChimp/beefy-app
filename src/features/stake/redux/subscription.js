@@ -421,6 +421,8 @@ export async function updatePools(dispatch, getState) {
 
   // No active subscriptions?
   if (Object.keys(activeSubscriptions).length === 0) {
+    // No RPC calls made, no need to throttle
+    clearThrottleUpdatePools(dispatch);
     return;
   }
 
@@ -555,6 +557,14 @@ async function throttleUpdatePools(dispatch) {
     throttleUpdatePoolsTimer = setTimeout(() => {
       dispatch(throttleUpdatePools);
     }, MIN_UPDATE_DELAY - timeSinceLast);
+  }
+}
+
+function clearThrottleUpdatePools(dispatch) {
+  throttleUpdatePoolsLastUpdate = 0;
+
+  if (throttleUpdatePoolsTimer) {
+    dispatch(throttleUpdatePools);
   }
 }
 
