@@ -36,7 +36,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-gelato-genesis',
-    logo: 'fantom/Gelato Genesis.png',
     name: 'Gelato Genesis',
     token: 'Gelato Genesis',
     tokenDescription: 'Beethoven X',
@@ -143,7 +142,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-two-gods-one-pool',
-    logo: 'fantom/Two Gods One Pool.png',
     name: 'Two Gods One Pool',
     token: 'Two Gods One Pool',
     tokenDescription: 'Beethoven X',
@@ -319,7 +317,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-ust-ust',
-    logo: 'fantom/UST-UST.png',
     name: 'UST (Axelar) - UST (Wormhole) LP',
     token: 'UST (Axelar) - UST (Wormhole) LP',
     tokenDescription: 'Beethoven X',
@@ -633,7 +630,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-god-between-stables',
-    logo: 'fantom/One God Between Two Stables.png',
     name: 'One God Between Two Stables',
     token: 'One God Between Two Stables',
     tokenDescription: 'Beethoven X',
@@ -661,7 +657,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-exploding-shrapnel-eol',
-    logo: 'fantom/Exploding Shrapnel.png',
     name: 'Exploding Shrapnel',
     token: 'Exploding Shrapnel',
     tokenDescription: 'Beethoven X',
@@ -690,7 +685,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-boomer-beets-eol',
-    logo: 'fantom/Boomer Beets.png',
     name: 'Boomer Beets',
     token: 'Boomer Beets',
     tokenDescription: 'Beethoven X',
@@ -2180,7 +2174,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-treeb-me-bro-eol',
-    logo: 'fantom/Treeb Me Bro.png',
     name: 'Treeb Me Bro',
     token: 'Treeb Me Bro',
     tokenDescription: 'Beethoven X',
@@ -3998,7 +3991,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-steady-beets-2',
-    logo: 'fantom/Steady Beets.png',
     name: 'Steady Beets 2',
     token: 'Steady Beets 2',
     tokenDescription: 'Beethoven X',
@@ -4082,7 +4074,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-ode-to-joy-eol',
-    logo: 'fantom/Ode To Joy.png',
     name: 'Ode To Joy',
     token: 'Ode To Joy',
     tokenDescription: 'Beethoven X',
@@ -4894,7 +4885,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-phantom-dai-opera',
-    logo: 'fantom/phantom-dai-opera.png',
     name: 'Phantom Dai Opera',
     token: 'Phantom Dai Opera',
     tokenDescription: 'Beethoven X',
@@ -5800,7 +5790,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-e-major',
-    logo: 'fantom/The E Major.png',
     name: 'E Major',
     token: 'E Major',
     tokenDescription: 'Beethoven X',
@@ -5828,7 +5817,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-b-major',
-    logo: 'fantom/The B Major.png',
     name: 'B Major',
     token: 'B Major',
     tokenDescription: 'Beethoven X',
@@ -5884,7 +5872,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-fidelio-duetto',
-    logo: 'fantom/The Fidelio Duetto.png',
     name: 'Fidelio Duetto',
     token: 'Fidelio Duetto',
     tokenDescription: 'Beethoven X',
@@ -5912,7 +5899,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-symphony-nr-10-eol',
-    logo: 'fantom/Symphony Nr 10.png',
     name: 'Symphony Nr 10. Opus 138',
     token: 'Symphony Nr 10. Opus 138',
     tokenDescription: 'Beethoven X',
@@ -5969,7 +5955,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-fantom-of-opera',
-    logo: 'fantom/Fantom of the Opera.png',
     name: 'Fantom of the Opera',
     token: 'Fantom of the Opera',
     tokenDescription: 'Beethoven X',
@@ -5997,7 +5982,6 @@ export const fantomPools = [
   },
   {
     id: 'beets-steady-beets-eol',
-    logo: 'fantom/Steady Beets.png',
     name: 'Steady Beets',
     token: 'Steady Beets',
     tokenDescription: 'Beethoven X',
