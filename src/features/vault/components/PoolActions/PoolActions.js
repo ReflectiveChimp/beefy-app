@@ -30,7 +30,7 @@ const PoolActions = ({ pool, balanceSingle, index, sharesBalance }) => {
           <div className={classes.notice}>
             <strong>Note: </strong>
             Please ensure your transaction's gas limit is under 10,000,000. Oasis RPCs are currently
-            over estimating the amount of gas needed for a transaction.
+            overestimating the amount of gas needed for a transaction.
           </div>
         ) : null}
         <DepositSection index={index} pool={pool} balanceSingle={balanceSingle} />
