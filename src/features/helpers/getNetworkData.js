@@ -63,6 +63,10 @@ import {
   moonbeamStakePools,
   moonbeamAddressBook,
   moonbeamZaps,
+  emeraldPools,
+  emeraldStakePools,
+  emeraldAddressBook,
+  emeraldZaps,
 } from '../configure';
 
 export const appNetworkId = window.REACT_APP_NETWORK_ID;
@@ -82,6 +86,7 @@ const networkTxUrls = {
   122: hash => `https://explorer.fuse.io/tx/${hash}`,
   1088: hash => `https://andromeda-explorer.metis.io/tx/${hash}`,
   1284: hash => `https://moonscan.io/tx/${hash}`,
+  42262: hash => `https://explorer.emerald.oasis.dev/${hash}`,
 };
 
 const networkFriendlyName = {
@@ -99,13 +104,14 @@ const networkFriendlyName = {
   122: 'Fuse',
   1088: 'Metis',
   1284: 'Moonbeam',
+  42262: 'Oasis Emerald',
 };
 
 const networkBuyUrls = {
   56: 'https://app.1inch.io/#/r/0xF4cb25a1FF50E319c267b3E51CBeC2699FB2A43B',
   128: 'https://ht.mdex.com/#/swap?inputCurrency=0xa71edc38d189767582c38a3145b5873052c3e47a&outputCurrency=0x765277eebeca2e31912c9946eae1021199b39c61',
   137: 'https://app.1inch.io/#/r/0xF4cb25a1FF50E319c267b3E51CBeC2699FB2A43B',
-  250: 'https://spookyswap.finance/swap?inputCurrency=0x04068da6c83afcfa0e13ba15a6696662335d5b75&outputCurrency=0xd6070ae98b8069de6B494332d1A1a81B6179D960',
+  250: 'https://spooky.fi/#/swap?inputCurrency=0x04068da6c83afcfa0e13ba15a6696662335d5b75&outputCurrency=0xd6070ae98b8069de6B494332d1A1a81B6179D960',
   43114:
     'https://www.traderjoexyz.com/trade?outputCurrency=0xd6070ae98b8069de6b494332d1a1a81b6179d960',
   1666600000:
@@ -120,6 +126,7 @@ const networkBuyUrls = {
   122: '',
   1088: 'https://netswap.io/#/swap?outputCurrency=0xe6801928061cdbe32ac5ad0634427e140efd05f9',
   1284: '',
+  42262: '',
 };
 
 export const getNetworkCoin = () => {
@@ -156,6 +163,8 @@ export const getNetworkPools = () => {
       return metisPools;
     case 1284:
       return moonbeamPools;
+    case 42262:
+      return emeraldPools;
     default:
       return [];
   }
@@ -191,6 +200,8 @@ export const getNetworkVaults = (networkId = appNetworkId) => {
       return indexBy(metisPools, 'id');
     case 1284:
       return indexBy(moonbeamPools, 'id');
+    case 42262:
+      return indexBy(emeraldPools, 'id');
     default:
       return {};
   }
@@ -226,6 +237,8 @@ export const getNetworkLaunchpools = (networkId = appNetworkId) => {
       return indexBy(metisStakePools, 'id');
     case 1284:
       return indexBy(moonbeamStakePools, 'id');
+    case 42262:
+      return indexBy(emeraldStakePools, 'id');
     default:
       return {};
   }
@@ -262,6 +275,8 @@ export const getNetworkTokens = () => {
       return metisAddressBook.tokens;
     case 1284:
       return moonbeamAddressBook.tokens;
+    case 42262:
+      return emeraldAddressBook.tokens;
     default:
       throw new Error(
         `Create address book for chainId(${chainId}) first. Check out https://github.com/beefyfinance/address-book`
@@ -315,6 +330,8 @@ export const getNetworkBurnTokens = () => {
       return {};
     case 1284:
       return {};
+    case 42262:
+      return {};
     default:
       throw new Error(`Create address book for this chainId first.`);
   }
@@ -350,6 +367,8 @@ export const getNetworkZaps = () => {
       return metisZaps;
     case 1284:
       return moonbeamZaps;
+    case 42262:
+      return emeraldZaps;
     default:
       return [];
   }
@@ -444,11 +463,13 @@ export const getNetworkStables = () => {
         'asUSDC',
         'LAMBDA',
         'DEI',
+        'TOR',
+        'USDB',
       ];
     case 1666600000:
       return ['BUSD', 'bscBUSD', 'USDC', 'USDT', 'UST', 'DAI', 'FRAX'];
     case 42161:
-      return ['USDC', 'USDT', 'MIM'];
+      return ['USDC', 'USDT', 'MIM', 'FRAX', 'UST', 'USTw', 'EURS'];
     case 42220:
       return ['cUSD', 'cEUR', 'DAI', 'USDC', 'USDT'];
     case 1285:
@@ -463,6 +484,8 @@ export const getNetworkStables = () => {
       return ['mUSDT', 'mUSDC'];
     case 1284:
       return ['USDC', 'USDT', 'DAI', 'BUSD'];
+    case 42262:
+      return ['ceUSDC, USDT'];
     default:
       return [];
   }
@@ -498,6 +521,8 @@ export const getNetworkMulticall = () => {
       return '0x4fd2e1c2395dc088F36cab06DCe47F88A912fC85';
     case 1284:
       return '0xC9F6b1B53E056fd04bE5a197ce4B2423d456B982';
+    case 42262:
+      return '0xFE40f6eAD11099D91D51a945c145CFaD1DD15Bb8';
     default:
       return '';
   }
@@ -1276,6 +1301,33 @@ export const getNetworkConnectors = t => {
             rpc: {
               1: 'https://rpc.api.moonbeam.network',
               1284: 'https://rpc.api.moonbeam.network',
+            },
+          },
+          connector: async (ProviderPackage, options) => {
+            const provider = new ProviderPackage(options);
+
+            await provider.enable();
+
+            return provider;
+          },
+        },
+      };
+    case 42262:
+      return {
+        network: 'emerald',
+        cacheProvider: true,
+        providerOptions: {
+          injected: {
+            display: {
+              name: 'Injected',
+              description: t('Home-BrowserWallet'),
+            },
+          },
+          package: WalletConnectProvider,
+          options: {
+            rpc: {
+              1: 'https://emerald.oasis.dev',
+              42262: 'https://emerald.oasis.dev',
             },
           },
           connector: async (ProviderPackage, options) => {
